@@ -1,0 +1,10 @@
+ 
+# QUY TẮC NGHIỆP VỤ HỆ THỐNG WMS - PIANO NGUYỄN DUY
+1. TECH STACK: PHP (thuần hoặc MVC), MySQL, Bootstrap 5, Vanilla JavaScript/jQuery.
+2. NGUYÊN TẮC BẤT KHẢ XÂM PHẠM VỀ SERIAL ĐÀN (Bảng `DanSerial`):
+   - Không quản lý số lượng (quantity) chung chung cho đàn Piano. Mọi giao dịch Nhập, Xuất, Chuyển kho, Bảo hành đều phải tham chiếu tới `DanSerial.ID_Serial`.
+   - Các trạng thái (Status) hợp lệ của 1 Serial đàn: `TRONG_KHO`, `DANG_CHUYEN_KHO`, `DA_XUAT_BAN`, `DANG_BAO_HANH`.
+   - Một Serial đang ở trạng thái `DANG_CHUYEN_KHO` hoặc `DA_XUAT_BAN` tuyệt đối KHÔNG ĐƯỢC xuất hiện trong danh sách bán hàng của Sales.
+3. QUY TRÌNH PHÊ DUYỆT (APPROVAL WORKFLOW):
+   - Khi Thủ kho tạo PhieuNhap, PhieuXuat, DieuChuyenKho -> Trạng thái phiếu là `CHO_DUYET`. Trạng thái và vị trí của DanSerial CHƯA THAY ĐỔI.
+   - Khi Admin bấm Phê duyệt phiếu -> BẮT BUỘC dùng MySQL Transaction (`BEGIN... COMMIT`) để cập nhật trạng thái phiếu thành `DA_DUYET`, đồng thời update `ID_Kho` và `TrangThai` của các `DanSerial` liên quan.

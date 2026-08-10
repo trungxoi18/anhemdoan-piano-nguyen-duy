@@ -1,0 +1,12 @@
+# XAMPP & IDE temporary files
+.vscode/
+scratch/
+.idea/
+*.log
+
+# Windows specific
+Thumbs.db
+Desktop.ini
+
+# Cấu hình AI
+.gemini/
