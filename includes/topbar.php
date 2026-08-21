@@ -52,9 +52,7 @@ if ($thongbao_res) {
                 <?php endif; ?>
             </div>
         </div>
-        <style>
-            .dropdown-menu.show { display: block !important; }
-        </style>
+        
 
         <div class="user-profile">
             <div class="avatar">

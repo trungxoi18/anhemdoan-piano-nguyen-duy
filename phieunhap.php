@@ -95,7 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuNhap'])) {
         for ($i = 0; $i < count($list_serial); $i++) {
             $maMau = $list_mamau[$i]; 
             $serial = trim($list_serial[$i]);
-            $giaNhap = str_replace(',', '', $list_gianhap[$i]); 
+            $giaNhap = floatval(str_replace(',', '', $list_gianhap[$i])); 
+            
+            if ($giaNhap < 0) {
+                throw new Exception("Giá nhập không được nhỏ hơn 0!");
+            }
             
             if (empty($serial)) continue;
 
@@ -128,14 +132,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuNhap'])) {
         // Ghi log
         writeLog($conn, 'NHẬP KHO', "Đã lập phiếu nhập kho #$maPhieuNhap ($soLuongThucTe sản phẩm, Tổng: " . number_format($tongTien, 0, ',', '.') . "đ)");
 
-        // Thông báo cho người nhập
+        // Thông báo cho người lập phiếu
+        $user_link = ($_SESSION['role_id'] == 1) ? 'duyet_phieu.php' : 'phieunhap.php';
         $msg_user = "Lập phiếu nhập thành công (Chờ duyệt)! Phiếu #$maPhieuNhap - $soLuongThucTe sản phẩm";
-        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_user', 'phieunhap.php')");
+        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_user', '$user_link')");
 
         // Thông báo cho Admin (role 1) nếu người lập không phải admin
         if ($_SESSION['role_id'] != 1) {
             $msg_admin = "Có phiếu nhập kho mới #$maPhieuNhap cần được phê duyệt ($soLuongThucTe SP)";
-            $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'phieunhap.php')");
+            $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'duyet_phieu.php')");
         }
 
         $_SESSION['flash_success'] = "Nhập kho thành công! Phiếu #$maPhieuNhap đã nhập $soLuongThucTe sản phẩm vào kho.";
@@ -162,305 +167,23 @@ if ($res_today && $r = $res_today->fetch_assoc()) $today_count = $r['cnt'];
 $total_stock = 0;
 $res_stock = $conn->query("SELECT COUNT(*) as cnt FROM danserial WHERE trangThai = 'Trong kho'");
 if ($res_stock && $r = $res_stock->fetch_assoc()) $total_stock = $r['cnt'];
+
+// Lấy lịch sử phiếu nhập (Admin thấy tất cả, User thấy của mình)
+$sql_history = "SELECT p.*, n.tenNCC, k.tenKho, nv.hoTen 
+                FROM phieunhap p 
+                LEFT JOIN nhacungcap n ON p.maNCC = n.maNCC 
+                LEFT JOIN kho k ON p.maKho = k.maKho
+                LEFT JOIN nhanvien nv ON p.maNhanVien = nv.maNhanVien ";
+if ($_SESSION['role_id'] != 1) {
+    $sql_history .= " WHERE p.maNhanVien = $user_id ";
+}
+$sql_history .= " ORDER BY p.ngayNhap DESC LIMIT 50";
+$history_result = $conn->query($sql_history);
 ?>
 
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    /* =============================================
-       PHIẾU NHẬP KHO - PREMIUM DARK MODE
-       Color Theme: Emerald Green (#34d399)
-       ============================================= */
-
-    .form-center-container { 
-        max-width: 1100px; 
-        margin: 0 auto; 
-        animation: fadeInUp 0.5s ease; 
-    }
-    
-    /* === WELCOME BANNER === */
-    .welcome-banner-import { 
-        background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(16, 185, 129, 0.05)); 
-        border: 1px solid rgba(52, 211, 153, 0.25);
-        color: var(--text-primary); 
-        padding: 32px 36px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 24px; 
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .welcome-banner-import::before {
-        content: ''; position: absolute; top: -50%; right: -20%; width: 50%; height: 200%;
-        background: radial-gradient(circle, rgba(52, 211, 153, 0.08) 0%, transparent 70%); pointer-events: none;
-    }
-
-    .welcome-banner-import::after {
-        content: ''; position: absolute; bottom: -60%; left: -10%; width: 40%; height: 200%;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%); pointer-events: none;
-    }
-
-    .banner-content { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
-    .banner-left h1 { margin: 0 0 8px 0; font-size: 1.6rem; color: var(--staff-text); font-weight: 800; }
-    .banner-left p { margin: 0; opacity: 0.8; font-size: 14px; }
-
-    .banner-stats { display: flex; gap: 20px; }
-    .stat-pill { 
-        display: flex; align-items: center; gap: 8px; 
-        background: rgba(0,0,0,0.2); padding: 10px 18px; 
-        border-radius: var(--radius-full); 
-        border: 1px solid rgba(255,255,255,0.06);
-        font-size: 13px; color: var(--text-secondary);
-    }
-    .stat-pill .material-symbols-rounded { font-size: 18px; color: var(--staff-text); }
-    .stat-pill strong { color: var(--text-primary); font-weight: 700; }
-
-    /* === STEP INDICATOR === */
-    .step-indicator {
-        display: flex; gap: 8px; margin-bottom: 24px; 
-        background: var(--bg-card); border: 1px solid var(--glass-border);
-        border-radius: var(--radius-lg); padding: 16px 20px;
-    }
-    .step-item {
-        display: flex; align-items: center; gap: 8px; flex: 1;
-        padding: 10px 16px; border-radius: var(--radius-md);
-        font-size: 13px; font-weight: 600; color: var(--text-muted);
-        transition: all 0.3s ease; cursor: default;
-    }
-    .step-item .step-num {
-        width: 28px; height: 28px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,0.05); font-size: 12px; font-weight: 700;
-        border: 1px solid var(--glass-border); transition: all 0.3s;
-        flex-shrink: 0;
-    }
-    .step-item.active { color: var(--staff-text); background: rgba(52, 211, 153, 0.08); }
-    .step-item.active .step-num { 
-        background: var(--staff-text); color: #000; 
-        border-color: var(--staff-text); 
-        box-shadow: 0 0 12px rgba(52, 211, 153, 0.3); 
-    }
-    .step-item.completed { color: var(--text-secondary); }
-    .step-item.completed .step-num { 
-        background: rgba(52, 211, 153, 0.15); color: var(--staff-text); 
-        border-color: rgba(52, 211, 153, 0.3); 
-    }
-    .step-divider { display: flex; align-items: center; color: var(--text-muted); font-size: 16px; padding: 0 4px; }
-
-    /* === FORM CARD === */
-    .form-card { 
-        background: var(--bg-card); 
-        backdrop-filter: blur(12px);
-        padding: 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 24px; 
-        border: 1px solid var(--glass-border); 
-        transition: 0.3s;
-    }
-    .form-card:hover { border-color: rgba(52, 211, 153, 0.2); box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
-    
-    .card-title { 
-        font-size: 1.1rem; font-weight: 700; color: var(--text-primary); 
-        margin-bottom: 24px; padding-bottom: 14px; 
-        border-bottom: 1px dashed var(--glass-border); 
-        display: flex; align-items: center; gap: 10px;
-    }
-    .card-title .material-symbols-rounded { color: var(--staff-text); font-size: 22px; }
-    .card-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: auto; }
-    
-    /* === INPUT STYLES === */
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-    .form-group { position: relative; }
-    .form-group label { 
-        display: flex; align-items: center; gap: 6px;
-        font-weight: 600; color: var(--text-secondary); 
-        margin-bottom: 10px; font-size: 12px; 
-        text-transform: uppercase; letter-spacing: 0.8px; 
-    }
-    .form-group label .material-symbols-rounded { font-size: 16px; color: var(--staff-text); }
-    .label-required { color: var(--danger); font-weight: 700; }
-    
-    .custom-input { 
-        width: 100%; padding: 14px 16px; 
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--glass-border); 
-        border-radius: var(--radius-md); 
-        outline: none; transition: 0.3s; 
-        color: var(--text-primary);
-        font-family: inherit; font-size: 14px;
-    }
-    .custom-input:focus { 
-        border-color: var(--staff-text); 
-        background: rgba(52, 211, 153, 0.05); 
-        box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12); 
-    }
-    .custom-input option { background: var(--bg-secondary); color: var(--text-primary); }
-    .custom-input::placeholder { color: var(--text-muted); }
-
-    textarea.custom-input { resize: vertical; min-height: 80px; }
-
-    .input-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
-    .input-hint .material-symbols-rounded { font-size: 14px; }
-    
-    /* === PRODUCT ROWS === */
-    .product-row { 
-        display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-end; 
-        background: rgba(255,255,255,0.02); padding: 20px; 
-        border-radius: var(--radius-md); border: 1px solid var(--glass-border); 
-        transition: all 0.3s ease; position: relative;
-    }
-    .product-row:hover { border-color: rgba(52, 211, 153, 0.15); background: rgba(255,255,255,0.035); }
-    .product-row > div { flex: 1; }
-    .product-row .col-serial { flex: 1.3; }
-    .product-row .col-price { max-width: 200px; }
-    
-    .row-number {
-        position: absolute; top: -10px; left: -10px;
-        width: 24px; height: 24px; border-radius: 50%;
-        background: var(--staff-text); color: #000;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 11px; font-weight: 800;
-        box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
-    }
-
-    .serial-status {
-        font-size: 11px; margin-top: 5px; 
-        display: flex; align-items: center; gap: 4px;
-        min-height: 18px;
-    }
-    .serial-status.ok { color: var(--success); }
-    .serial-status.error { color: var(--danger); }
-    .serial-status .material-symbols-rounded { font-size: 14px; }
-
-    .product-row-label { 
-        font-weight: 600; font-size: 0.75rem; text-transform: uppercase; 
-        margin-bottom: 8px; display: block; color: var(--text-secondary); 
-        letter-spacing: 0.5px;
-    }
-
-    /* === SUMMARY BOX === */
-    .summary-box {
-        background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(16, 185, 129, 0.04));
-        border: 1px solid rgba(52, 211, 153, 0.2);
-        border-radius: var(--radius-lg); padding: 24px; margin-top: 24px;
-    }
-    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .summary-item { text-align: center; }
-    .summary-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 6px; }
-    .summary-item .value { font-size: 24px; font-weight: 800; color: var(--text-primary); }
-    .summary-item .value.highlight { color: var(--staff-text); }
-    
-    /* === BUTTONS === */
-    .btn-action { 
-        padding: 14px 24px; border-radius: var(--radius-md); 
-        font-weight: 600; cursor: pointer; border: none; 
-        transition: all 0.3s ease; display: inline-flex; 
-        align-items: center; gap: 8px; font-family: inherit;
-    }
-    .btn-submit { 
-        background: linear-gradient(135deg, #34d399, #10b981); 
-        color: #000; font-size: 1rem; 
-        box-shadow: 0 4px 16px rgba(52, 211, 153, 0.3);
-        padding: 16px 36px; font-weight: 700;
-    }
-    .btn-submit:hover { 
-        transform: translateY(-2px); 
-        box-shadow: 0 8px 28px rgba(52, 211, 153, 0.4); 
-    }
-    .btn-submit:active { transform: translateY(0); }
-    
-    .btn-add { 
-        background: rgba(52, 211, 153, 0.06); color: var(--staff-text); 
-        border: 1px dashed rgba(52, 211, 153, 0.3); 
-    }
-    .btn-add:hover { 
-        border-color: var(--staff-text); 
-        background: rgba(52, 211, 153, 0.1);
-        transform: translateY(-1px); 
-    }
-    
-    .btn-remove { 
-        background: var(--danger-bg); color: var(--danger); 
-        padding: 14px; min-width: 48px; height: 48px; 
-        border: 1px solid rgba(248,113,113,0.15);
-        justify-content: center;
-    }
-    .btn-remove:hover { 
-        background: rgba(248, 113, 113, 0.2); 
-        border-color: rgba(248, 113, 113, 0.3); 
-    }
-
-    .btn-reset {
-        background: rgba(255,255,255,0.04); color: var(--text-secondary);
-        border: 1px solid var(--glass-border); padding: 16px 28px;
-    }
-    .btn-reset:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
-    
-    /* === ALERT MESSAGES === */
-    .alert-msg {
-        padding: 16px 20px; border-radius: var(--radius-lg); 
-        margin-bottom: 24px; display: flex; align-items: center; gap: 12px;
-        animation: fadeInUp 0.4s ease;
-    }
-    .alert-msg .material-symbols-rounded { font-size: 24px; flex-shrink: 0; }
-    .alert-error { 
-        background: var(--danger-bg); color: var(--danger); 
-        border: 1px solid rgba(248,113,113,0.2); 
-    }
-    .alert-success { 
-        background: var(--success-bg); color: var(--success); 
-        border: 1px solid rgba(52,211,153,0.2); 
-    }
-
-    /* === ACTION BAR === */
-    .action-bar {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 20px 0 40px 0;
-    }
-    .action-bar-left { display: flex; gap: 12px; align-items: center; }
-    .action-bar-right { display: flex; gap: 12px; align-items: center; }
-
-    .keyboard-hint {
-        display: flex; align-items: center; gap: 6px;
-        font-size: 12px; color: var(--text-muted);
-    }
-    .kbd { 
-        display: inline-flex; align-items: center; justify-content: center;
-        padding: 3px 8px; background: rgba(255,255,255,0.06); 
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 6px; font-size: 11px; font-weight: 600;
-        color: var(--text-secondary); font-family: inherit;
-        min-width: 22px;
-    }
-
-    /* === ANIMATIONS === */
-    @keyframes rowSlideIn {
-        from { opacity: 0; transform: translateY(12px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes rowSlideOut {
-        from { opacity: 1; transform: translateY(0) scale(1); }
-        to { opacity: 0; transform: translateX(20px) scale(0.95); }
-    }
-    @keyframes pulseGreen {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
-        50% { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.15); }
-    }
-
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-        .banner-content { flex-direction: column; gap: 16px; }
-        .banner-stats { flex-wrap: wrap; }
-        .product-row { flex-direction: column; align-items: stretch; gap: 12px; }
-        .product-row .col-price { max-width: 100%; }
-        .summary-grid { grid-template-columns: 1fr; }
-        .step-indicator { flex-direction: column; }
-        .step-divider { display: none; }
-        .action-bar { flex-direction: column; gap: 16px; }
-        .keyboard-hint { display: none; }
-    }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
@@ -473,7 +196,7 @@ if ($res_stock && $r = $res_stock->fetch_assoc()) $total_stock = $r['cnt'];
                 <div class="banner-content">
                     <div class="banner-left">
                         <h1>📦 Lập Phiếu Nhập Kho</h1>
-                        <p>Nhân viên thực hiện: <b style="color: white;"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b> · <?php echo date('d/m/Y H:i'); ?></p>
+                        <p>Nhân viên thực hiện: <b><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b> · <?php echo date('d/m/Y H:i'); ?></p>
                     </div>
                     <div class="banner-stats">
                         <div class="stat-pill">
@@ -490,7 +213,18 @@ if ($res_stock && $r = $res_stock->fetch_assoc()) $total_stock = $r['cnt'];
 
             <?php echo $msg; ?>
 
-            <!-- STEP INDICATOR -->
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('new')">
+                    <span class="material-symbols-rounded">add_circle</span> Lập phiếu mới
+                </div>
+                <div class="nav-tab" onclick="switchTab('history')">
+                    <span class="material-symbols-rounded">history</span> Lịch sử lập phiếu
+                </div>
+            </div>
+
+            <!-- TAB LẬP PHIẾU MỚI -->
+            <div class="tab-pane active" id="tab-new">
+                <!-- STEP INDICATOR -->
             <div class="step-indicator">
                 <div class="step-item active" id="step-1">
                     <span class="step-num">1</span> Thông tin chứng từ
@@ -677,7 +411,60 @@ if ($res_stock && $r = $res_stock->fetch_assoc()) $total_stock = $r['cnt'];
                     </div>
                 </div>
             </form>
+            </div> <!-- End tab-new -->
+
+            <!-- TAB LỊCH SỬ -->
+            <div class="tab-pane" id="tab-history">
+                <div class="form-card">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">history</span> 
+                        Lịch sử lập phiếu nhập
+                    </div>
+                    <?php if ($history_result && $history_result->num_rows > 0): ?>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Thời gian</th>
+                                <th>Nhà cung cấp</th>
+                                <th>Kho nhập</th>
+                                <th>Sản phẩm</th>
+                                <th>Tổng tiền</th>
+                                <th>Người lập</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $history_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><strong>#<?= $row['maPhieuNhap'] ?></strong></td>
+                                <td><?= date('d/m/Y H:i', strtotime($row['ngayNhap'])) ?></td>
+                                <td><?= htmlspecialchars($row['tenNCC'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($row['tenKho'] ?? 'N/A') ?></td>
+                                <td><?= $row['soLuong'] ?> SP</td>
+                                <td style="color: var(--success); font-weight: 600;"><?= number_format($row['tongTienNhap']) ?>đ</td>
+                                <td><?= htmlspecialchars($row['hoTen'] ?? 'N/A') ?></td>
+                                <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
+                                <td>
+                                    <?php if ($row['trangThai'] == 'Chờ duyệt'): ?>
+                                        <a href="sua_phieunhap.php?id=<?= $row['maPhieuNhap'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(52, 211, 153, 0.1); color: var(--staff-text); font-size: 13px;">Sửa phiếu</a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.5;">inbox</span>
+                            <p>Chưa có lịch sử lập phiếu nào.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div> <!-- End tab-history -->
         </div>
+
     </div>
 </div>
 
@@ -1020,6 +807,15 @@ document.addEventListener('keydown', function(e) {
 
 // Init summary
 updateSummary();
+
+// === TABS ===
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector('.nav-tab[onclick*="' + tabId + '"]').classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
 </script>
 
 <?php include 'includes/footer.php'; ?>

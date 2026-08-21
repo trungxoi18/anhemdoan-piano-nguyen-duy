@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Thêm thông báo cho người lập (Tài khoản hiện tại)
         $msg_user = "Đã lập hóa đơn thành công #" . $maHoaDon;
-        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_user', 'hoadon_moi.php')");
+        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_user', 'hoadon_action.php?id=$maHoaDon')");
 
         // Thêm thông báo cho Thủ kho (maVaiTro = 3)
         $msg_thukho = "Nhập đơn xuất cho hóa đơn #" . $maHoaDon;
@@ -182,142 +182,47 @@ $khachhangs = $conn->query("SELECT maKhachHang, hoTen, soDienThoai FROM khachhan
 // Lấy chương trình khuyến mãi đang diễn ra
 $sql_km = "SELECT * FROM chuongtrinhkhuyenmai WHERE trangThai = 'Đang diễn ra'";
 $khuyenmais = $conn->query($sql_km);
+
+// Lấy lịch sử hóa đơn
+$sql_history = "SELECT hd.*, kh.hoTen as tenKH, nv.hoTen as tenNV 
+                FROM hoadon hd 
+                LEFT JOIN khachhang kh ON hd.maKhachHang = kh.maKhachHang
+                LEFT JOIN nhanvien nv ON hd.maNhanVien = nv.maNhanVien ";
+if ($_SESSION['role_id'] != 1) {
+    $sql_history .= " WHERE hd.maNhanVien = $user_id ";
+}
+$sql_history .= " ORDER BY hd.ngayLap DESC LIMIT 50";
+$history_result = $conn->query($sql_history);
 ?>
 
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    /* Dark Mode Premium Form Styles */
-    .form-center-container { max-width: 1100px; margin: 0 auto; animation: fadeInUp 0.5s ease; }
-    
-    .welcome-banner { 
-        background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(59, 130, 246, 0.05)); 
-        border: 1px solid rgba(96, 165, 250, 0.3);
-        color: var(--text-primary); 
-        padding: 28px 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 28px; 
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .welcome-banner::before {
-        content: ''; position: absolute; top: -50%; right: -20%; width: 50%; height: 200%;
-        background: radial-gradient(circle, rgba(96, 165, 250, 0.1) 0%, transparent 70%); pointer-events: none;
-    }
 
-    .form-card { 
-        background: var(--bg-card); 
-        backdrop-filter: blur(12px);
-        padding: 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 24px; 
-        border: 1px solid var(--glass-border); 
-        transition: 0.3s;
-    }
-    .form-card:hover { border-color: rgba(96, 165, 250, 0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    
-    .card-title { 
-        font-size: 1.15rem; 
-        font-weight: 700; 
-        color: var(--text-primary); 
-        margin-bottom: 24px; 
-        padding-bottom: 12px; 
-        border-bottom: 1px dashed var(--glass-border); 
-        display: flex; align-items: center; gap: 8px;
-    }
-    
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-    .form-group label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    .custom-input { 
-        width: 100%; padding: 14px 16px; 
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--glass-border); 
-        border-radius: var(--radius-md); 
-        outline: none; transition: 0.3s; 
-        color: var(--text-primary);
-        font-family: inherit; font-size: 14px;
-    }
-    .custom-input:focus { border-color: var(--sales-text); background: rgba(96, 165, 250, 0.05); box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
-    .custom-input option { background: var(--bg-secondary); color: var(--text-primary); }
-    
-    .serial-row { 
-        display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; 
-        background: rgba(255,255,255,0.02); padding: 20px; 
-        border-radius: var(--radius-md); border: 1px solid var(--glass-border); 
-        transition: 0.3s;
-    }
-    .serial-row:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
-    .serial-row.is-valid  { border-color: rgba(16, 185, 129, 0.4); background: rgba(16,185,129,0.04); }
-    .serial-row.is-error  { border-color: rgba(248, 113, 113, 0.4); background: rgba(248,113,113,0.04); }
-    .serial-row.is-loading { border-color: rgba(96,165,250,0.3); }
-    .serial-row > div { flex: 1; }
-    .serial-row .col-price { max-width: 260px; }
-    .serial-row .col-info  { max-width: 280px; }
-
-    .serial-info-badge {
-        margin-top: 8px; font-size: 12px; min-height: 20px;
-        display: flex; align-items: center; gap: 6px;
-        transition: 0.3s;
-    }
-    .serial-info-badge.ok    { color: var(--success); }
-    .serial-info-badge.error { color: var(--danger); }
-    .serial-info-badge.loading { color: var(--sales-text); animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-    .price-display {
-        width: 100%; padding: 14px 16px;
-        background: rgba(16, 185, 129, 0.08);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        border-radius: var(--radius-md);
-        color: var(--success);
-        font-family: inherit; font-size: 15px; font-weight: 700;
-        letter-spacing: 0.5px;
-        cursor: not-allowed;
-        transition: 0.3s;
-    }
-    .price-display.empty {
-        background: rgba(0,0,0,0.15); border-color: var(--glass-border);
-        color: var(--text-muted); font-weight: 400; font-size: 14px;
-    }
-    
-    .btn-action { padding: 14px 24px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; font-family: inherit;}
-    .btn-submit { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: white; font-size: 1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
-    .btn-add { background: var(--bg-tertiary); color: var(--text-primary); border: 1px dashed var(--glass-border); }
-    .btn-add:hover { border-color: var(--sales-text); color: var(--sales-text); background: rgba(96, 165, 250, 0.05); }
-    .btn-remove { background: var(--danger-bg); color: var(--danger); padding: 14px; height: 46px; border: 1px solid rgba(248,113,113,0.2); }
-    .btn-remove:hover { background: rgba(248, 113, 113, 0.2); }
-
-    .total-box {
-        background: rgba(96, 165, 250, 0.1);
-        border: 1px solid rgba(96, 165, 250, 0.3);
-        border-radius: var(--radius-lg);
-        padding: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 24px;
-    }
-    .total-box span { font-size: 16px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-    .total-box h2 { font-size: 32px; color: var(--sales-text); font-weight: 800; margin: 0; }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
         <div class="form-center-container">
-            <div class="welcome-banner">
+            <div class="welcome-banner-sales">
                 <h1 style="margin: 0 0 8px 0; font-size: 1.6rem; color: var(--sales-text);">Lập Hóa Đơn Mới</h1>
                 <p style="margin: 0; opacity: 0.8; font-size: 14px;">Nhân viên thực hiện: <b style="color: white;"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b></p>
             </div>
 
             <?php echo $msg; ?>
 
-            <form method="POST" id="hoadonForm">
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('new')">
+                    <span class="material-symbols-rounded">add_circle</span> Lập hóa đơn mới
+                </div>
+                <div class="nav-tab" onclick="switchTab('history')">
+                    <span class="material-symbols-rounded">history</span> Lịch sử hóa đơn
+                </div>
+            </div>
+
+            <div class="tab-pane active" id="tab-new">
+                <form method="POST" id="hoadonForm">
                 <div class="form-card">
                     <div class="card-title"><span class="material-symbols-rounded" style="color: var(--sales-text);">person</span> 1. Thông tin Khách Hàng & Thanh toán</div>
                     <div class="input-grid">
@@ -369,7 +274,7 @@ $khuyenmais = $conn->query($sql_km);
                 <div class="form-card">
                     <div class="card-title"><span class="material-symbols-rounded" style="color: var(--sales-text);">shopping_cart</span> 2. Chi tiết Sản phẩm <small style="font-size:12px; font-weight:400; opacity:0.6; margin-left:8px;">Giá bán tự động lấy từ hệ thống</small></div>
                     <div id="serial-container">
-                        <div class="serial-row">
+                        <div class="serial-row-sales">
                             <div>
                                 <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary);">Số Serial</label>
                                 <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Nhập hoặc quét mã Serial..." required
@@ -405,17 +310,76 @@ $khuyenmais = $conn->query($sql_km);
                     </button>
                 </div>
             </form>
+            </div> <!-- End tab-new -->
+
+            <!-- TAB LỊCH SỬ -->
+            <div class="tab-pane" id="tab-history">
+                <div class="form-card">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">history</span> 
+                        Lịch sử lập hóa đơn
+                    </div>
+                    <?php if ($history_result && $history_result->num_rows > 0): ?>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã HĐ</th>
+                                <th>Khách hàng</th>
+                                <th>Thời gian</th>
+                                <th>Thanh toán</th>
+                                <th>Tổng tiền</th>
+                                <th>Người lập</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $history_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><strong>#<?= $row['maHoaDon'] ?></strong></td>
+                                <td><?= htmlspecialchars($row['tenKH'] ?? 'Khách lẻ') ?></td>
+                                <td><?= date('d/m/Y H:i', strtotime($row['ngayLap'])) ?></td>
+                                <td><?= htmlspecialchars($row['hinhThucThanhToan'] ?? 'N/A') ?></td>
+                                <td style="color: var(--sales-text); font-weight: 700;"><?= number_format($row['tongTien']) ?>đ</td>
+                                <td><?= htmlspecialchars($row['tenNV'] ?? 'N/A') ?></td>
+                                <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
+                                <td>
+                                    <?php if ($row['trangThai'] == 'Chờ giao'): ?>
+                                        <a href="sua_hoadon.php?id=<?= $row['maHoaDon'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(59, 130, 246, 0.1); color: var(--sales-text); font-size: 13px; text-decoration: none; border-radius: 6px; margin-right: 5px;">Sửa</a>
+                                    <?php endif; ?>
+                                    <a href="xuat_pdf.php?type=hoadon&id=<?= $row['maHoaDon'] ?>" target="_blank" class="btn-action" style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); color: var(--success); font-size: 13px; text-decoration: none; border-radius: 6px;">In HĐ</a>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.5;">receipt_long</span>
+                            <p>Chưa có lịch sử lập hóa đơn nào.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div> <!-- End tab-history -->
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector('.nav-tab[onclick*="' + tabId + '"]').classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
+
 // ============================================================
 // Tra cứu Serial → Tự động điền giá niêm yết từ DB
 // ============================================================
 async function lookupSerial(input) {
     const serial = input.value.trim();
-    const row    = input.closest('.serial-row');
+    const row    = input.closest('.serial-row-sales');
     const badge  = row.querySelector('.serial-info-badge');
     const displays = row.querySelectorAll('.price-display');
     const hiddenPrice = row.querySelector('.price-input');
@@ -423,7 +387,7 @@ async function lookupSerial(input) {
     if (!serial) return;
 
     // --- Loading state ---
-    row.className = 'serial-row is-loading';
+    row.className = 'serial-row-sales is-loading';
     badge.className = 'serial-info-badge loading';
     badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">autorenew</span> Đang tra cứu...';
     displays.forEach(d => { d.className = 'price-display empty'; });
@@ -440,7 +404,7 @@ async function lookupSerial(input) {
 
         if (data.found) {
             // --- Thành công: điền giá ---
-            row.className = 'serial-row is-valid';
+            row.className = 'serial-row-sales is-valid';
             badge.className = 'serial-info-badge ok';
             badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">check_circle</span> Tìm thấy — Sẵn sàng bán';
 
@@ -455,7 +419,7 @@ async function lookupSerial(input) {
             calculateTotal();
         } else {
             // --- Lỗi: serial không hợp lệ ---
-            row.className = 'serial-row is-error';
+            row.className = 'serial-row-sales is-error';
             badge.className = 'serial-info-badge error';
             badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">error</span> ' + (data.error || 'Không tìm thấy');
 
@@ -469,7 +433,7 @@ async function lookupSerial(input) {
     } catch(e) {
         badge.className = 'serial-info-badge error';
         badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">wifi_off</span> Lỗi kết nối server';
-        row.className = 'serial-row is-error';
+        row.className = 'serial-row-sales is-error';
     }
 }
 
@@ -497,7 +461,7 @@ function getSerialRowTemplate() {
 function addSerialRow() {
     const container = document.getElementById('serial-container');
     const newRow = document.createElement('div');
-    newRow.className = 'serial-row';
+    newRow.className = 'serial-row-sales';
     newRow.innerHTML = getSerialRowTemplate();
     container.appendChild(newRow);
     newRow.style.opacity = '0';
@@ -511,9 +475,9 @@ function addSerialRow() {
 }
 
 function removeSerialRow(btn) {
-    const rows = document.querySelectorAll('.serial-row');
+    const rows = document.querySelectorAll('.serial-row-sales');
     if (rows.length > 1) {
-        const row = btn.closest('.serial-row');
+        const row = btn.closest('.serial-row-sales');
         row.style.opacity = '0';
         row.style.transform = 'scale(0.95)';
         setTimeout(() => { row.remove(); calculateTotal(); }, 300);
@@ -551,14 +515,14 @@ function calculateTotal() {
 
 function submitForm() {
     // Kiểm tra tất cả serial rows đã lookup thành công
-    const errorRows = document.querySelectorAll('.serial-row.is-error');
-    const loadingRows = document.querySelectorAll('.serial-row.is-loading');
+    const errorRows = document.querySelectorAll('.serial-row-sales.is-error');
+    const loadingRows = document.querySelectorAll('.serial-row-sales.is-loading');
     if (loadingRows.length > 0) {
         alert('Vui lòng đợi hệ thống tra cứu Serial xong!');
         return;
     }
-    const validRows = document.querySelectorAll('.serial-row.is-valid');
-    const allRows   = document.querySelectorAll('.serial-row');
+    const validRows = document.querySelectorAll('.serial-row-sales.is-valid');
+    const allRows   = document.querySelectorAll('.serial-row-sales');
     if (validRows.length === 0) {
         alert('Chưa có sản phẩm nào hợp lệ! Vui lòng nhập và tra cứu mã Serial.');
         return;

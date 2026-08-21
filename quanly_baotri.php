@@ -126,53 +126,23 @@ $hangdans = $conn->query("SELECT * FROM hangdan ORDER BY tenHang ASC");
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    .page-container { max-width: 1200px; margin: 0 auto; animation: fadeInUp 0.5s ease; }
-    .page-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .page-title h2 { color: var(--text-primary); display: flex; align-items: center; gap: 10px; margin: 0; }
-    
-    .table-container { background: var(--bg-card); border-radius: var(--radius-xl); padding: 20px; border: 1px solid var(--glass-border); overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th, .data-table td { padding: 12px 15px; border-bottom: 1px solid var(--glass-border); text-align: left; font-size: 14px; }
-    .data-table th { background: rgba(0,0,0,0.1); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 12px; }
-    
-    .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .badge-warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .badge-success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .badge-primary { background: rgba(124, 92, 252, 0.1); color: var(--accent); border: 1px solid rgba(124, 92, 252, 0.3); }
-    
-    .btn-action { padding: 8px 12px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
-    .btn-approve { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .btn-approve:hover { background: rgba(16, 185, 129, 0.2); }
-    .btn-reject { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
-    .btn-reject:hover { background: rgba(239, 68, 68, 0.2); }
-    .btn-next { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .btn-next:hover { background: rgba(59, 130, 246, 0.2); }
-    .btn-print { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); }
-    .btn-print:hover { background: rgba(255, 255, 255, 0.1); }
-    .btn-create { background: var(--accent); color: white; padding: 10px 20px; font-size: 14px; box-shadow: 0 4px 12px var(--accent-glow); }
-    
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-overlay.active { display: flex; }
-    .modal-content { background: var(--bg-card); padding: 30px; border-radius: var(--radius-lg); width: 400px; border: 1px solid var(--glass-border); }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
-        <div class="page-container">
-            <div class="page-title">
-                <h2><span class="material-symbols-rounded">build</span> Quản lý Phiếu Bảo Trì</h2>
-                <a href="taophieu_baotri.php" class="btn-action btn-create"><span class="material-symbols-rounded">add</span> Lập phiếu bảo trì</a>
+        <div class="page-content-wrapper">
+            <div class="page-header">
+                <div class="page-title">
+                    <span class="material-symbols-rounded">build</span> Quản lý Phiếu Bảo Trì
+                </div>
+                <a href="taophieu_baotri.php" class="btn btn-primary"><span class="material-symbols-rounded">add</span> Lập phiếu bảo trì</a>
             </div>
             
             <?php echo $msg; ?>
             
             <div class="table-container">
-                <table class="data-table">
+                <table class="standard-table">
                     <thead>
                         <tr>
                             <th>Mã Phiếu</th>
@@ -204,7 +174,7 @@ $hangdans = $conn->query("SELECT * FROM hangdan ORDER BY tenHang ASC");
                                     <?= htmlspecialchars($p['tenMau']) ?><br>
                                     <small style="color: var(--text-secondary);"><?= htmlspecialchars($p['soSerial']) ?></small>
                                 </td>
-                                <td><span class="badge <?= $statusClass ?>"><?= $p['trangThai'] ?></span></td>
+                                <td><span class="badge-pill <?= $statusClass ?>"><?= $p['trangThai'] ?></span></td>
                                 <td>
                                     <div style="display:flex; gap: 8px; flex-wrap: wrap;">
                                         <!-- Actions cho Admin -->
@@ -261,30 +231,34 @@ $hangdans = $conn->query("SELECT * FROM hangdan ORDER BY tenHang ASC");
 
 <!-- Modal Xuất Hãng -->
 <div class="modal-overlay" id="xuatModal">
-    <div class="modal-content">
-        <h3 style="margin-top:0;">Yêu cầu xuất gửi Hãng</h3>
-        <form method="POST">
-            <input type="hidden" name="maPhieuBT" id="xuat_maPhieuBT">
-            <input type="hidden" name="action" value="request_xuat">
-            
-            <div style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-secondary);">Chọn Hãng Đàn:</label>
-                <select name="maHang" class="custom-input" style="width:100%; padding:10px; background:rgba(0,0,0,0.1); color:var(--text-primary); border:1px solid var(--glass-border); border-radius:var(--radius-md);" required>
-                    <option value="">-- Chọn Hãng --</option>
-                    <?php 
-                    $hangdans->data_seek(0);
-                    while($h = $hangdans->fetch_assoc()): 
-                    ?>
-                        <option value="<?= $h['maHang'] ?>"><?= htmlspecialchars($h['tenHang']) ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-            
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" class="btn-action btn-print" onclick="document.getElementById('xuatModal').classList.remove('active')">Hủy</button>
-                <button type="submit" class="btn-action btn-approve">Gửi Yêu Cầu</button>
-            </div>
-        </form>
+    <div class="modal-card" style="width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title"><span class="material-symbols-rounded">local_shipping</span> Yêu cầu xuất gửi Hãng</h3>
+            <button class="modal-close" onclick="document.getElementById('xuatModal').classList.remove('active')"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="xuatForm">
+                <input type="hidden" name="maPhieuBT" id="xuat_maPhieuBT">
+                <input type="hidden" name="action" value="request_xuat">
+                
+                <div class="form-group">
+                    <label>Chọn Hãng Đàn:</label>
+                    <select name="maHang" class="custom-input" required>
+                        <option value="">-- Chọn Hãng --</option>
+                        <?php 
+                        $hangdans->data_seek(0);
+                        while($h = $hangdans->fetch_assoc()): 
+                        ?>
+                            <option value="<?= $h['maHang'] ?>"><?= htmlspecialchars($h['tenHang']) ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('xuatModal').classList.remove('active')">Hủy</button>
+            <button type="submit" form="xuatForm" class="btn btn-primary">Gửi Yêu Cầu</button>
+        </div>
     </div>
 </div>
 

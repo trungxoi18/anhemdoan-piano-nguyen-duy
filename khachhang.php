@@ -128,81 +128,24 @@ if ($is_admin_or_sales && $_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Lấy danh sách khách hàng
-$sql = "SELECT * FROM khachhang ORDER BY maKhachHang DESC";
-$result = $conn->query($sql);
+$search = trim($_GET['search'] ?? '');
+if (!empty($search)) {
+    $search_term = "%" . $search . "%";
+    $sql = "SELECT * FROM khachhang WHERE hoTen LIKE ? OR soDienThoai LIKE ? ORDER BY maKhachHang DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $search_term, $search_term);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $sql = "SELECT * FROM khachhang ORDER BY maKhachHang DESC";
+    $result = $conn->query($sql);
+}
 
 $title = 'Quản lý Khách hàng';
 ?>
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; animation: fadeIn 0.4s ease; }
-    .page-title { font-size: 24px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 12px; }
-    .page-title .material-symbols-rounded { font-size: 32px; color: var(--info); background: var(--info-bg); padding: 8px; border-radius: 12px; }
-    
-    .btn-action { padding: 12px 20px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 14px; text-decoration: none;}
-    .btn-add-new { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-    .btn-add-new:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); }
-
-    .table-card { background: var(--bg-card); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: var(--radius-xl); overflow: hidden; animation: fadeInUp 0.5s ease; box-shadow: var(--shadow-sm); }
-    
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
-    th { background: rgba(0,0,0,0.2); font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-    td { font-size: 14px; color: var(--text-primary); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .btn-icon { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px; border-radius: 6px; transition: 0.2s; display: inline-flex; }
-    .btn-icon:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-    .btn-icon.edit:hover { color: var(--info); background: var(--info-bg); }
-    .btn-icon.delete:hover { color: var(--danger); background: var(--danger-bg); }
-
-    /* Modal Form */
-    .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 13, 26, 0.85); backdrop-filter: blur(8px);
-        display: none; justify-content: center; align-items: center;
-        z-index: 9999; padding: 20px;
-    }
-    .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-    
-    .modal-card {
-        background: var(--bg-secondary); border: 1px solid var(--border-hover);
-        border-radius: var(--radius-xl); width: 100%; max-width: 500px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        transform: translateY(20px); opacity: 0;
-        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .modal-overlay.active .modal-card { transform: translateY(0); opacity: 1; }
-
-    .modal-header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 1.2rem; font-weight: 700; color: var(--info); margin: 0; display: flex; align-items: center; gap: 10px; }
-    .modal-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; padding: 4px; border-radius: 50%; }
-    .modal-close:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
-
-    .modal-body { padding: 32px; }
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .custom-input { width: 100%; padding: 14px 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: var(--radius-md); outline: none; transition: 0.3s; color: var(--text-primary); font-family: inherit; font-size: 14px; }
-    .custom-input:focus { border-color: var(--info); background: rgba(96, 165, 250, 0.05); box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
-
-    .modal-footer { padding: 24px 32px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: rgba(0,0,0,0.1); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
-    
-    .btn-cancel { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
-    .btn-cancel:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-    .btn-save { background: var(--info); color: white; }
-    .btn-save:hover { background: #3b82f6; }
-
-    /* Alert */
-    .alert-msg { padding: 16px 20px; border-radius: var(--radius-lg); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; animation: fadeInUp 0.4s ease; }
-    .alert-msg .material-symbols-rounded { font-size: 24px; }
-    .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
-    .alert-error { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(248,113,113,0.3); }
-
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
@@ -210,11 +153,20 @@ $title = 'Quản lý Khách hàng';
     <div class="content">
         <div class="page-header">
             <h1 class="page-title"><span class="material-symbols-rounded">groups</span> Quản lý Khách hàng</h1>
-            <?php if ($is_admin_or_sales): ?>
-                <button class="btn-action btn-add-new" onclick="openModal('add')">
-                    <span class="material-symbols-rounded">person_add</span> Thêm khách hàng
-                </button>
-            <?php endif; ?>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <form method="GET" style="display: flex; gap: 8px;">
+                    <input type="text" name="search" class="custom-input" placeholder="Tìm theo tên, SĐT..." value="<?= htmlspecialchars($search) ?>" style="padding: 10px 16px; width: 250px; background: rgba(0,0,0,0.2);">
+                    <button type="submit" class="btn-action" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border); padding: 10px 16px;"><span class="material-symbols-rounded">search</span></button>
+                    <?php if (!empty($search)): ?>
+                        <a href="khachhang.php" class="btn-action" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 10px;" title="Xóa tìm kiếm"><span class="material-symbols-rounded">close</span></a>
+                    <?php endif; ?>
+                </form>
+                <?php if ($is_admin_or_sales): ?>
+                    <button class="btn-action btn-add-new" onclick="openModal('add')">
+                        <span class="material-symbols-rounded">person_add</span> Thêm mới
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php echo $msg; ?>
@@ -411,10 +363,12 @@ $title = 'Quản lý Khách hàng';
                         if(hd.sanphams.length === 0) spHtml = '<div style="color: var(--text-muted); font-style: italic; font-size: 13px;">Không có sản phẩm</div>';
                         
                         html += `
-                        <div style="border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: rgba(0,0,0,0.2);">
+                        <div style="border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; background: rgba(0,0,0,0.2); transition: 0.2s; cursor: pointer;" onmouseover="this.style.borderColor='var(--info)'" onmouseout="this.style.borderColor='var(--border)'" onclick="window.open('xuat_pdf.php?type=hoadon&id=${hd.maHoaDon}', '_blank')">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
                                 <div>
-                                    <div style="font-weight: 700; color: var(--text-primary); font-size: 15px;">Hóa đơn #${hd.maHoaDon}</div>
+                                    <div style="font-weight: 700; color: var(--info); font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                                        Hóa đơn #${hd.maHoaDon} <span class="material-symbols-rounded" style="font-size: 16px;">print</span>
+                                    </div>
                                     <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Ngày lập: ${hd.ngayLapFmt}</div>
                                 </div>
                                 <div style="text-align: right;">

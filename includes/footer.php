@@ -23,6 +23,64 @@ document.addEventListener('DOMContentLoaded', function() {
             item.classList.add('active');
         }
     });
+
+    // Inject Modern Footer
+    const contentArea = document.querySelector('.content');
+    if (contentArea && !document.querySelector('.site-footer')) {
+        const footerHTML = `
+            <footer class="site-footer">
+                <div class="footer-left">
+                    <div class="copyright">&copy; ${new Date().getFullYear()} Kho Đàn Piano Nguyễn Duy. All rights reserved.</div>
+                    <div class="footer-address">
+                        <span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">location_on</span>
+                        Địa chỉ: Kho Đàn Nguyễn Duy
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-support-container">
+                        <a id="btn-support" style="display: flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">support_agent</span>
+                            Hỗ trợ
+                        </a>
+                        <div id="support-dropdown" class="footer-support-dropdown">
+                            <a href="tel:0915738381" class="footer-support-item">
+                                <span class="material-symbols-rounded" style="color: var(--success);">call</span>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Hotline</div>
+                                    <div style="font-weight: 600;">0915 738 381</div>
+                                </div>
+                            </a>
+                            <a href="https://www.facebook.com/ndtxun2803" target="_blank" class="footer-support-item">
+                                <span class="material-symbols-rounded" style="color: #3b5998;">facebook</span>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Facebook</div>
+                                    <div style="font-weight: 600;">Nguyễn Đức Trung</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    <a href="#">Chính sách</a>
+                    <span class="version">v2.1.0</span>
+                </div>
+            </footer>
+        `;
+        contentArea.insertAdjacentHTML('beforeend', footerHTML);
+
+        // Support Dropdown Toggle Logic
+        const btnSupport = document.getElementById('btn-support');
+        const supportDropdown = document.getElementById('support-dropdown');
+        if (btnSupport && supportDropdown) {
+            btnSupport.addEventListener('click', (e) => {
+                e.stopPropagation();
+                supportDropdown.classList.toggle('show');
+            });
+            document.addEventListener('click', (e) => {
+                if (!supportDropdown.contains(e.target) && e.target !== btnSupport) {
+                    supportDropdown.classList.remove('show');
+                }
+            });
+        }
+    }
 });
 </script>
 </body>

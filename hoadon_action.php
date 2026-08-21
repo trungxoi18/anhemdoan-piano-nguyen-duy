@@ -17,7 +17,7 @@ if (!$id) {
 }
 
 // Lấy thông tin hóa đơn
-$sql_hd = "SELECT hd.maHoaDon, hd.ngayLap, hd.tongTien, kh.hoTen as tenKH 
+$sql_hd = "SELECT hd.maHoaDon, hd.ngayLap, hd.tongTien, hd.trangThai, kh.hoTen as tenKH 
            FROM hoadon hd 
            LEFT JOIN khachhang kh ON hd.maKhachHang = kh.maKhachHang 
            WHERE hd.maHoaDon = ?";
@@ -29,72 +29,25 @@ if ($res->num_rows == 0) {
     die("Không tìm thấy Hóa đơn!");
 }
 $hd = $res->fetch_assoc();
+
+// Lấy chi tiết hóa đơn
+$sql_ct = "SELECT ct.*, ds.soSerial, md.tenMau, md.baoHanh, hd_hang.tenHang 
+           FROM chitiethoadon ct 
+           JOIN danserial ds ON ct.maSerial = ds.maSerial 
+           JOIN maudan md ON ds.maMau = md.maMau 
+           LEFT JOIN hangdan hd_hang ON md.maHang = hd_hang.maHang 
+           WHERE ct.maHoaDon = ?";
+$stmt_ct = $conn->prepare($sql_ct);
+$stmt_ct->bind_param("i", $id);
+$stmt_ct->execute();
+$res_ct = $stmt_ct->get_result();
+$details = [];
+while($row = $res_ct->fetch_assoc()){ $details[] = $row; }
 ?>
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    .action-container {
-        max-width: 600px;
-        margin: 50px auto;
-        background: var(--bg-card);
-        padding: 40px;
-        border-radius: var(--radius-xl);
-        text-align: center;
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .action-icon {
-        font-size: 64px;
-        color: var(--accent);
-        margin-bottom: 20px;
-    }
-    .action-title {
-        font-size: 24px;
-        color: var(--text-primary);
-        margin-bottom: 10px;
-        font-weight: 700;
-    }
-    .action-desc {
-        color: var(--text-secondary);
-        margin-bottom: 30px;
-        font-size: 15px;
-    }
-    .action-buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-    }
-    .btn-large {
-        padding: 15px 30px;
-        font-size: 16px;
-        font-weight: 600;
-        border-radius: var(--radius-md);
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        transition: 0.3s;
-    }
-    .btn-print {
-        background: var(--accent);
-        color: white;
-        border: none;
-    }
-    .btn-print:hover {
-        background: var(--accent-secondary);
-        transform: translateY(-2px);
-    }
-    .btn-export {
-        background: var(--success-bg);
-        color: var(--success);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .btn-export:hover {
-        background: rgba(16, 185, 129, 0.2);
-        transform: translateY(-2px);
-    }
-</style>
+
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
@@ -105,17 +58,53 @@ $hd = $res->fetch_assoc();
             <div class="action-title">Xử Lý Hóa Đơn #<?php echo $id; ?></div>
             <div class="action-desc">
                 Khách hàng: <strong><?php echo htmlspecialchars($hd['tenKH'] ?? 'Khách Lẻ'); ?></strong><br>
-                Tổng tiền: <strong><?php echo number_format($hd['tongTien'], 0, ',', '.'); ?> đ</strong><br>
+                Tổng tiền: <strong style="color: var(--success); font-size: 18px;"><?php echo number_format($hd['tongTien'], 0, ',', '.'); ?> đ</strong><br>
                 Ngày lập: <?php echo date('d/m/Y H:i', strtotime($hd['ngayLap'])); ?>
+            </div>
+            
+            <div class="invoice-details">
+                <h3>Chi tiết sản phẩm</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Serial</th>
+                            <th style="text-align: right;">Đơn giá</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        $stt = 1;
+                        foreach($details as $item): 
+                        ?>
+                        <tr>
+                            <td><?= $stt++ ?></td>
+                            <td>
+                                <strong><?= htmlspecialchars($item['tenMau'] . ' - ' . ($item['tenHang'] ?? '')) ?></strong><br>
+                                <span class="item-warranty">Bảo hành: <?= htmlspecialchars($item['baoHanh'] ?? 'Không') ?></span>
+                            </td>
+                            <td><span style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px;"><?= htmlspecialchars($item['soSerial']) ?></span></td>
+                            <td style="text-align: right; font-weight: 600;"><?= number_format($item['donGia'] ?? 0, 0, ',', '.') ?> đ</td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
             
             <div class="action-buttons">
                 <a href="xuat_pdf.php?type=hoadon&id=<?php echo $id; ?>" class="btn-large btn-print">
                     <span class="material-symbols-rounded">print</span> In Hóa Đơn
                 </a>
-                <a href="phieuxuat.php?maHoaDon=<?php echo $id; ?>" class="btn-large btn-export">
-                    <span class="material-symbols-rounded">local_shipping</span> Lập Phiếu Xuất
-                </a>
+                <?php if ($hd['trangThai'] == 'Chờ giao'): ?>
+                    <a href="phieuxuat.php?maHoaDon=<?php echo $id; ?>" class="btn-large btn-export">
+                        <span class="material-symbols-rounded">local_shipping</span> Lập Phiếu Xuất
+                    </a>
+                <?php else: ?>
+                    <button class="btn-large btn-export" style="background: rgba(255,255,255,0.1); color: var(--text-muted); border: 1px solid var(--border); cursor: not-allowed;" title="Hóa đơn này đã được xử lý" disabled>
+                        <span class="material-symbols-rounded">check_circle</span> Đã xử lý (<?= htmlspecialchars($hd['trangThai']) ?>)
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>

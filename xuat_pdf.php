@@ -92,7 +92,7 @@ if ($type == 'hoadon') {
     $data = $res->fetch_assoc();
 
     // Lấy chi tiết
-    $sql_ct = "SELECT ct.*, ds.soSerial, md.tenMau, hd_hang.tenHang 
+    $sql_ct = "SELECT ct.*, ds.soSerial, md.tenMau, md.baoHanh, hd_hang.tenHang 
                FROM chitiethoadon ct 
                JOIN danserial ds ON ct.maSerial = ds.maSerial 
                JOIN maudan md ON ds.maMau = md.maMau 
@@ -107,9 +107,8 @@ if ($type == 'hoadon') {
 } elseif ($type == 'phieuxuat') {
     $title = "PHIẾU XUẤT KHO";
     // Lấy thông tin phiếu xuất
-    $sql_px = "SELECT px.*, k.tenKho, k.diaChi as diaChiKho, nv.hoTen as tenNV 
+    $sql_px = "SELECT px.*, nv.hoTen as tenNV 
                FROM phieuxuat px 
-               LEFT JOIN kho k ON px.maKho = k.maKho 
                LEFT JOIN nhanvien nv ON px.maNhanVien = nv.maNhanVien 
                WHERE px.maPhieuXuat = ?";
     $stmt = $conn->prepare($sql_px);
@@ -120,7 +119,7 @@ if ($type == 'hoadon') {
     $data = $res->fetch_assoc();
 
     // Lấy chi tiết
-    $sql_ct = "SELECT ct.*, ds.soSerial, ds.giaNhap, md.tenMau, hd_hang.tenHang 
+    $sql_ct = "SELECT ct.*, ds.soSerial, ds.giaBan, ds.maKho, md.tenMau, hd_hang.tenHang 
                FROM chitietphieuxuat ct 
                JOIN danserial ds ON ct.maSerial = ds.maSerial 
                JOIN maudan md ON ds.maMau = md.maMau 
@@ -131,6 +130,18 @@ if ($type == 'hoadon') {
     $stmt_ct->execute();
     $res_ct = $stmt_ct->get_result();
     while($row = $res_ct->fetch_assoc()){ $details[] = $row; }
+    
+    // Lấy thông tin Kho từ sản phẩm đầu tiên
+    $tenKho = '';
+    $diaChiKho = '';
+    if (count($details) > 0) {
+        $maKho_first = $details[0]['maKho'];
+        $st_kho = $conn->query("SELECT tenKho, diaChi FROM kho WHERE maKho = $maKho_first");
+        if ($st_kho && $k = $st_kho->fetch_assoc()) {
+            $tenKho = $k['tenKho'];
+            $diaChiKho = $k['diaChi'];
+        }
+    }
 
 } elseif ($type == 'phieunhap') {
     $title = "PHIẾU NHẬP KHO";
@@ -433,9 +444,9 @@ if ($type == 'hoadon') {
 <body>
 
     <div class="action-bar">
-        <a href="index.php" class="btn btn-outline">
-            <span class="material-symbols-rounded">arrow_back</span> Quay về Trang chủ
-        </a>
+        <button onclick="if(window.history.length > 1 && document.referrer) window.history.back(); else window.close();" class="btn btn-outline" style="font-family: inherit; font-size: 15px; cursor: pointer;">
+            <span class="material-symbols-rounded">arrow_back</span> Quay lại
+        </button>
         <button onclick="window.print()" class="btn">
             <span class="material-symbols-rounded">print</span> In / Xuất PDF
         </button>
@@ -676,7 +687,7 @@ if ($type == 'hoadon') {
             <div>- Họ và tên người nhận hàng: <?= htmlspecialchars($data['nguoiNhanHang'] ?? '.......................................................................................') ?></div>
             <div>- Của (đơn vị): <?= htmlspecialchars($data['donViNhan'] ?? '..............................................................................................') ?></div>
             <div>- Theo <?= htmlspecialchars($data['soChungTu'] ?? '.........................') ?> số <?= htmlspecialchars($data['soChungTu'] ?? '.........') ?> <?= $ngayCTStr ?></div>
-            <div>- Xuất tại kho: <?= htmlspecialchars($data['tenKho'] ?? '.............................................') ?> Địa điểm: <?= htmlspecialchars($data['diaChiKho'] ?? '.............................................') ?></div>
+            <div>- Xuất tại kho: <?= htmlspecialchars($tenKho ?? '.............................................') ?> Địa điểm: <?= htmlspecialchars($diaChiKho ?? '.............................................') ?></div>
             <div>- Lý do xuất kho: <?= htmlspecialchars($data['lyDoXuat'] ?? '......................................................................................................................') ?></div>
         </div>
 
@@ -715,8 +726,8 @@ if ($type == 'hoadon') {
                 $sum_amount_px = 0;
                 foreach ($details as $row): 
                     $sum_qty++;
-                    // Lấy đơn giá từ danserial (giaNhap)
-                    $don_gia = $row['giaNhap'] ?? 0;
+                    // Lấy đơn giá từ danserial (giaBan)
+                    $don_gia = $row['giaBan'] ?? 0;
                     $thanh_tien = $don_gia * 1;
                     $sum_amount_px += $thanh_tien;
                 ?>
@@ -965,7 +976,10 @@ if ($type == 'hoadon') {
                 ?>
                 <tr>
                     <td><?= $stt++ ?></td>
-                    <td class="text-left"><?= htmlspecialchars($row['tenMau'] . ' - ' . $row['tenHang']) ?> (Serial: <?= htmlspecialchars($row['soSerial']) ?>)</td>
+                    <td class="text-left">
+                        <strong><?= htmlspecialchars($row['tenMau'] . ' - ' . $row['tenHang']) ?></strong><br>
+                        <span style="font-size: 13px; font-style: italic; color: #333;">Serial: <?= htmlspecialchars($row['soSerial']) ?> | Bảo hành: <?= htmlspecialchars($row['baoHanh'] ?? 'Không') ?></span>
+                    </td>
                     <td>Chiếc</td>
                     <td>1</td>
                     <td class="text-right"><?= number_format($don_gia, 0, ',', '.') ?></td>
