@@ -19,7 +19,6 @@ $msg = "";
 // Xử lý lưu phiếu xuất
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
     $maHoaDon = !empty($_POST['maHoaDon']) ? $_POST['maHoaDon'] : NULL;
-    $maKho = $_POST['maKho'];
     $lyDoXuat = $_POST['lyDoXuat'];
     $trangThai = 'Chờ duyệt'; // Chờ admin duyệt
     
@@ -32,31 +31,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
 
     $conn->begin_transaction();
     try {
-        $sql_phieu = "INSERT INTO phieuxuat (maNhanVien, maHoaDon, nguoiNhanHang, soChungTu, ngayChungTu, donViNhan, ngayXuat, lyDoXuat, maKho, trangThai) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)";
+        if (!empty($maHoaDon)) {
+            $check_hd = $conn->prepare("SELECT trangThai FROM hoadon WHERE maHoaDon = ?");
+            $check_hd->bind_param("i", $maHoaDon);
+            $check_hd->execute();
+            $res_hd = $check_hd->get_result();
+            if ($res_hd->num_rows > 0) {
+                $hd_status = $res_hd->fetch_assoc()['trangThai'];
+                if ($hd_status != 'Chờ giao') {
+                    throw new Exception("Hóa đơn này đã được xử lý hoặc lập phiếu xuất trước đó!");
+                }
+            }
+        }
+
+        $sql_phieu = "INSERT INTO phieuxuat (maNhanVien, maHoaDon, nguoiNhanHang, soChungTu, ngayChungTu, donViNhan, ngayXuat, lyDoXuat, maKho, trangThai) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, NULL, ?)";
         $stmt = $conn->prepare($sql_phieu);
-        $stmt->bind_param("iisssssis", $user_id, $maHoaDon, $nguoiNhanHang, $soChungTu, $ngayChungTu, $donViNhan, $lyDoXuat, $maKho, $trangThai);
+        $stmt->bind_param("iissssss", $user_id, $maHoaDon, $nguoiNhanHang, $soChungTu, $ngayChungTu, $donViNhan, $lyDoXuat, $trangThai);
         $stmt->execute();
         $maPhieuXuat = $conn->insert_id;
 
+        $list_serial = $_POST['soSerial'];
+        $list_makho = $_POST['maKhoList'];
         $soLuongXuat = 0;
-        foreach ($list_serial as $serial) {
+        foreach ($list_serial as $index => $serial) {
             $serial = trim($serial);
             if(empty($serial)) continue;
             
-            // Bước 1: Kiểm tra serial có tồn tại trong kho đã chọn không
+            $maKhoSelected = intval($list_makho[$index]);
+            
+            // Bước 1: Kiểm tra serial có tồn tại trong hệ thống và thuộc đúng kho đã chọn
             $st_check_kho = $conn->prepare("SELECT maSerial, trangThai FROM danserial WHERE soSerial = ? AND maKho = ?");
-            $st_check_kho->bind_param("si", $serial, $maKho);
+            $st_check_kho->bind_param("si", $serial, $maKhoSelected);
             $st_check_kho->execute();
             $res_kho = $st_check_kho->get_result();
             if ($res_kho->num_rows == 0) {
-                // Kiểm tra serial có tồn tại ở kho khác không để đưa ra thông báo rõ hơn
+                // Check where it actually is to show a better error
                 $st_any = $conn->prepare("SELECT k.tenKho FROM danserial ds JOIN kho k ON ds.maKho = k.maKho WHERE ds.soSerial = ?");
                 $st_any->bind_param("s", $serial);
                 $st_any->execute();
                 $res_any = $st_any->get_result();
                 if ($res_any->num_rows > 0) {
                     $r_any = $res_any->fetch_assoc();
-                    throw new Exception("Mã Serial [$serial] không thuộc kho đã chọn! (Serial đang ở: {$r_any['tenKho']})");
+                    throw new Exception("Mã Serial [$serial] không thuộc kho đã chọn! (Đang ở: {$r_any['tenKho']})");
                 }
                 throw new Exception("Mã Serial [$serial] không tồn tại trong hệ thống!");
             }
@@ -92,12 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
         writeLog($conn, 'XUẤT KHO', "Đã lập phiếu xuất kho #$maPhieuXuat - Xuất $soLuongXuat sản phẩm");
 
         // Thông báo cho người xuất
+        $user_link = ($_SESSION['role_id'] == 1) ? 'duyet_phieu.php' : 'phieuxuat.php';
         $msg_xuat = "Lập phiếu xuất thành công (Chờ duyệt)! Phiếu #$maPhieuXuat - $soLuongXuat sản phẩm";
-        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_xuat', 'phieuxuat.php')");
+        $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_xuat', '$user_link')");
 
         // Thông báo cho Admin (role 1)
         $msg_admin = "Có phiếu xuất kho mới #$maPhieuXuat cần được phê duyệt ($soLuongXuat SP)";
-        $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'phieuxuat.php')");
+        $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'duyet_phieu.php')");
 
         $_SESSION['flash_success'] = "Lập phiếu xuất thành công! Phiếu #$maPhieuXuat đang chờ phê duyệt.";
         header("Location: xuat_pdf.php?type=phieuxuat&id=$maPhieuXuat");
@@ -110,6 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
 
 $hoadons = $conn->query("SELECT maHoaDon, ngayLap FROM hoadon WHERE trangThai = 'Chờ giao'");
 $khos = $conn->query("SELECT * FROM kho");
+$khos_data = [];
+while($k = $khos->fetch_assoc()) {
+    $khos_data[] = $k;
+}
+$kho_options_html = "";
+foreach($khos_data as $k) {
+    $kho_options_html .= "<option value='{$k['maKho']}'>".htmlspecialchars($k['tenKho'])."</option>";
+}
 
 $prefill_serials = [];
 if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
@@ -125,97 +150,47 @@ if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
         $prefill_serials[] = $r['soSerial'];
     }
 }
+
+// Lấy lịch sử phiếu xuất (Admin thấy tất cả, User thấy của mình)
+$sql_history = "SELECT p.*, k.tenKho, nv.hoTen, 
+                (SELECT COUNT(*) FROM chitietphieuxuat ct WHERE ct.maPhieuXuat = p.maPhieuXuat) as soLuong 
+                FROM phieuxuat p 
+                LEFT JOIN kho k ON p.maKho = k.maKho
+                LEFT JOIN nhanvien nv ON p.maNhanVien = nv.maNhanVien ";
+if ($_SESSION['role_id'] != 1) {
+    $sql_history .= " WHERE p.maNhanVien = $user_id ";
+}
+$sql_history .= " ORDER BY p.ngayXuat DESC LIMIT 50";
+$history_result = $conn->query($sql_history);
 ?>
 
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    /* Dark Mode Premium Form Styles */
-    .form-center-container { max-width: 1100px; margin: 0 auto; animation: fadeInUp 0.5s ease; }
-    
-    .welcome-banner { 
-        background: linear-gradient(135deg, rgba(124, 92, 252, 0.2), rgba(94, 234, 212, 0.05)); 
-        border: 1px solid rgba(124, 92, 252, 0.3);
-        color: var(--text-primary); 
-        padding: 28px 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 28px; 
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .welcome-banner::before {
-        content: ''; position: absolute; top: -50%; right: -20%; width: 50%; height: 200%;
-        background: radial-gradient(circle, rgba(124, 92, 252, 0.1) 0%, transparent 70%); pointer-events: none;
-    }
-
-    .form-card { 
-        background: var(--bg-card); 
-        backdrop-filter: blur(12px);
-        padding: 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 24px; 
-        border: 1px solid var(--glass-border); 
-        transition: 0.3s;
-    }
-    .form-card:hover { border-color: rgba(124, 92, 252, 0.3); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    
-    .card-title { 
-        font-size: 1.15rem; 
-        font-weight: 700; 
-        color: var(--text-primary); 
-        margin-bottom: 24px; 
-        padding-bottom: 12px; 
-        border-bottom: 1px dashed var(--glass-border); 
-        display: flex; align-items: center; gap: 8px;
-    }
-    
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-    .form-group label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    .custom-input { 
-        width: 100%; padding: 14px 16px; 
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--glass-border); 
-        border-radius: var(--radius-md); 
-        outline: none; transition: 0.3s; 
-        color: var(--text-primary);
-        font-family: inherit; font-size: 14px;
-    }
-    .custom-input:focus { border-color: var(--accent); background: rgba(124, 92, 252, 0.05); box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.15); }
-    .custom-input option { background: var(--bg-secondary); color: var(--text-primary); }
-    
-    .serial-row { 
-        display: flex; gap: 16px; margin-bottom: 16px; align-items: center; 
-        background: rgba(255,255,255,0.02); padding: 20px; 
-        border-radius: var(--radius-md); border: 1px solid var(--glass-border); 
-        transition: 0.3s;
-    }
-    .serial-row:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
-    
-    .btn-action { padding: 14px 24px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; font-family: inherit;}
-    .btn-submit { background: linear-gradient(135deg, var(--accent), #a78bfa); color: white; font-size: 1rem; box-shadow: 0 4px 12px var(--accent-glow); }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-    .btn-add { background: var(--bg-tertiary); color: var(--text-primary); border: 1px dashed var(--glass-border); }
-    .btn-add:hover { border-color: var(--accent); color: var(--accent); background: rgba(124, 92, 252, 0.05); }
-    .btn-remove { background: var(--danger-bg); color: var(--danger); padding: 14px; height: 48px; border: 1px solid rgba(248,113,113,0.2); }
-    .btn-remove:hover { background: rgba(248, 113, 113, 0.2); }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
         <div class="form-center-container">
-            <div class="welcome-banner">
-                <h1 style="margin: 0 0 8px 0; font-size: 1.6rem; color: var(--accent-secondary);">Lập Phiếu Xuất Kho</h1>
-                <p style="margin: 0; opacity: 0.8; font-size: 14px;">Nhân viên thực hiện: <b style="color: white;"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b></p>
+            <div class="welcome-banner-export">
+                <h1>Lập Phiếu Xuất Kho</h1>
+                <p>Nhân viên thực hiện: <b><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b></p>
             </div>
 
             <?php echo $msg; ?>
 
-            <form method="POST" onsubmit="return confirm('Xác nhận lưu phiếu xuất này?');">
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('new')">
+                    <span class="material-symbols-rounded">add_circle</span> Lập phiếu mới
+                </div>
+                <div class="nav-tab" onclick="switchTab('history')">
+                    <span class="material-symbols-rounded">history</span> Lịch sử lập phiếu
+                </div>
+            </div>
+
+            <div class="tab-pane active" id="tab-new">
+                <form method="POST" onsubmit="return confirm('Xác nhận lưu phiếu xuất này?');">
                 <div class="form-card">
                     <div class="card-title"><span class="material-symbols-rounded" style="color: var(--accent-secondary);">route</span> 1. Thông tin điều hướng xuất kho</div>
                     <div class="input-grid">
@@ -228,11 +203,9 @@ if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
                                 <?php endwhile; ?>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Chọn Kho xuất:</label>
-                            <select name="maKho" class="custom-input" required>
-                                <?php while($k = $khos->fetch_assoc()) echo "<option value='{$k['maKho']}'>{$k['tenKho']}</option>"; ?>
-                            </select>
+                        <div class="form-group" style="display: none;">
+                            <label>Kho xuất:</label>
+                            <input type="text" class="custom-input" value="Tự động theo sản phẩm" disabled>
                         </div>
                         <div class="form-group">
                             <label>Lý do xuất:</label>
@@ -263,22 +236,30 @@ if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
                     <div class="card-title" style="margin-top: 30px;"><span class="material-symbols-rounded" style="color: var(--accent-secondary);">qr_code_scanner</span> 3. Danh sách Mã đàn xuất (Serial)</div>
                     <div id="serial-container">
                         <?php if(empty($prefill_serials)): ?>
-                            <div class="serial-row">
-                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" required>
+                            <div class="serial-row" style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" style="flex: 2;" required>
+                                <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
+                                    <option value="">-- Chọn Kho --</option>
+                                    <?= $kho_options_html ?>
+                                </select>
                                 <button type="button" class="btn-action btn-add" onclick="addSerialRow()">
                                     <span class="material-symbols-rounded">add</span>
                                 </button>
                             </div>
                         <?php else: ?>
                             <?php foreach($prefill_serials as $index => $serial): ?>
-                            <div class="serial-row">
-                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" value="<?= htmlspecialchars($serial) ?>" required>
+                            <div class="serial-row" style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" value="<?= htmlspecialchars($serial) ?>" style="flex: 2;" required>
+                                <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
+                                    <option value="">-- Chọn Kho --</option>
+                                    <?= $kho_options_html ?>
+                                </select>
                                 <?php if($index == 0): ?>
                                 <button type="button" class="btn-action btn-add" onclick="addSerialRow()">
                                     <span class="material-symbols-rounded">add</span>
                                 </button>
                                 <?php else: ?>
-                                <button type="button" class="btn-action btn-remove" onclick="this.parentElement.remove()">
+                                <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)">
                                     <span class="material-symbols-rounded">delete</span>
                                 </button>
                                 <?php endif; ?>
@@ -297,19 +278,87 @@ if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
                     </button>
                 </div>
             </form>
+            </div> <!-- End tab-new -->
+
+            <!-- TAB LỊCH SỬ -->
+            <div class="tab-pane" id="tab-history">
+                <div class="form-card">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">history</span> 
+                        Lịch sử lập phiếu xuất
+                    </div>
+                    <?php if ($history_result && $history_result->num_rows > 0): ?>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Thời gian</th>
+                                <th>Kho xuất</th>
+                                <th>Lý do</th>
+                                <th>Người nhận</th>
+                                <th>Sản phẩm</th>
+                                <th>Người lập</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $history_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><strong>#<?= $row['maPhieuXuat'] ?></strong></td>
+                                <td><?= date('d/m/Y H:i', strtotime($row['ngayXuat'])) ?></td>
+                                <td><?= htmlspecialchars($row['tenKho'] ?? 'Nhiều kho') ?></td>
+                                <td><?= htmlspecialchars($row['lyDoXuat'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($row['nguoiNhanHang'] ?? 'N/A') ?></td>
+                                <td><?= $row['soLuong'] ?> SP</td>
+                                <td><?= htmlspecialchars($row['hoTen'] ?? 'N/A') ?></td>
+                                <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
+                                <td>
+                                    <?php if ($row['trangThai'] == 'Chờ duyệt'): ?>
+                                        <a href="sua_phieuxuat.php?id=<?= $row['maPhieuXuat'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(124, 92, 252, 0.1); color: var(--accent); font-size: 13px;">Sửa phiếu</a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.5;">inbox</span>
+                            <p>Chưa có lịch sử lập phiếu xuất nào.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div> <!-- End tab-history -->
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector('.nav-tab[onclick*="' + tabId + '"]').classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
+
 function addSerialRow() {
     const container = document.getElementById('serial-container');
     const newRow = document.createElement('div');
     newRow.className = 'serial-row';
+    newRow.style.display = 'flex';
+    newRow.style.gap = '10px';
+    newRow.style.alignItems = 'center';
+    
+    const khoOptions = `<?= $kho_options_html ?>`;
+    
     newRow.innerHTML = `
-        <div style="flex: 1;">
-            <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập hoặc quét mã Serial..." required>
-        </div>
+        <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập hoặc quét mã Serial..." style="flex: 2;" required>
+        <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
+            <option value="">-- Chọn Kho --</option>
+            ${khoOptions}
+        </select>
         <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)" title="Xóa"><span class="material-symbols-rounded">delete</span></button>
     `;
     container.appendChild(newRow);
@@ -330,6 +379,84 @@ function removeSerialRow(btn) {
     row.style.transform = 'scale(0.95)';
     setTimeout(() => row.remove(), 300);
 }
+
+// Auto-fill invoice details when selecting a sales invoice
+document.addEventListener('DOMContentLoaded', function() {
+    const hdSelect = document.querySelector('select[name="maHoaDon"]');
+    if (hdSelect) {
+        hdSelect.addEventListener('change', function() {
+            let hdId = this.value;
+            if (!hdId) {
+                // Reset fields
+                document.querySelector('input[name="lyDoXuat"]').value = '';
+                document.querySelector('input[name="nguoiNhanHang"]').value = '';
+                document.querySelector('input[name="donViNhan"]').value = '';
+                document.querySelector('input[name="soChungTu"]').value = '';
+                document.querySelector('input[name="ngayChungTu"]').value = '';
+                document.getElementById('serial-container').innerHTML = `
+                    <div class="serial-row">
+                        <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập hoặc quét mã Serial..." required>
+                        <button type="button" class="btn-action btn-add" onclick="addSerialRow()">
+                            <span class="material-symbols-rounded">add</span>
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Call AJAX API
+            fetch('api_get_hoadon.php?id=' + hdId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector('input[name="lyDoXuat"]').value = 'Xuất hàng theo hóa đơn số #' + hdId;
+                        document.querySelector('input[name="nguoiNhanHang"]').value = data.khachHang || '';
+                        document.querySelector('input[name="donViNhan"]').value = data.donVi || '';
+                        document.querySelector('input[name="soChungTu"]').value = 'HĐ' + hdId;
+                        document.querySelector('input[name="ngayChungTu"]').value = data.ngayLap || '';
+                        
+                        const khoOptions = `<?= $kho_options_html ?>`;
+                        
+                        // Render serials
+                        let container = document.getElementById('serial-container');
+                        container.innerHTML = '';
+                        if (data.serials && data.serials.length > 0) {
+                            data.serials.forEach((serial, index) => {
+                                let btn = index === 0 
+                                    ? `<button type="button" class="btn-action btn-add" onclick="addSerialRow()"><span class="material-symbols-rounded">add</span></button>`
+                                    : `<button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)"><span class="material-symbols-rounded">delete</span></button>`;
+                                
+                                let rowHTML = `
+                                <div class="serial-row" style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" name="soSerial[]" class="custom-input" value="${serial}" placeholder="Nhập hoặc quét mã Serial..." style="flex: 2;" required>
+                                    <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
+                                        <option value="">-- Chọn Kho --</option>
+                                        ${khoOptions}
+                                    </select>
+                                    ${btn}
+                                </div>`;
+                                container.insertAdjacentHTML('beforeend', rowHTML);
+                            });
+                        } else {
+                            // fallback empty row
+                            container.innerHTML = `
+                            <div class="serial-row" style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập hoặc quét mã Serial..." style="flex: 2;" required>
+                                <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
+                                    <option value="">-- Chọn Kho --</option>
+                                    ${khoOptions}
+                                </select>
+                                <button type="button" class="btn-action btn-add" onclick="addSerialRow()">
+                                    <span class="material-symbols-rounded">add</span>
+                                </button>
+                            </div>`;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching invoice details:', err));
+        });
+    }
+});
 </script>
 
 <?php include 'includes/footer.php'; ?>

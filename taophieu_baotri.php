@@ -11,7 +11,21 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$role_id = $_SESSION['role_id'];
 $msg = "";
+
+// Lấy lịch sử lập phiếu bảo trì
+$sql_history = "SELECT pb.*, kh.hoTen as tenKH, ds.soSerial, md.tenMau, nv.hoTen as tenNVLap
+        FROM phieubaotri pb
+        JOIN khachhang kh ON pb.maKhachHang = kh.maKhachHang
+        JOIN danserial ds ON pb.maSerial = ds.maSerial
+        JOIN maudan md ON ds.maMau = md.maMau
+        JOIN nhanvien nv ON pb.maNhanVienLap = nv.maNhanVien ";
+if ($role_id != 1) {
+    $sql_history .= " WHERE pb.maNhanVienLap = $user_id ";
+}
+$sql_history .= " ORDER BY pb.ngayTiepNhan DESC LIMIT 50";
+$history_result = $conn->query($sql_history);
 
 // ==========================================
 // AJAX: Lấy danh sách serial theo mã hóa đơn
@@ -125,39 +139,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnSave'])) {
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    .page-container { max-width: 800px; margin: 40px auto; animation: fadeInUp 0.5s ease; }
-    .form-card { background: var(--bg-card); padding: 40px; border-radius: var(--radius-xl); border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-    .form-title { color: var(--accent); display: flex; align-items: center; gap: 10px; margin-top: 0; margin-bottom: 30px; font-size: 24px; padding-bottom: 15px; border-bottom: 1px dashed var(--glass-border); }
-    
-    .form-group { margin-bottom: 24px; }
-    .form-group label { display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 13px; }
-    
-    .custom-input { width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.1); border: 1px solid var(--glass-border); border-radius: var(--radius-md); color: var(--text-primary); font-family: inherit; font-size: 15px; transition: 0.3s; }
-    .custom-input:focus { border-color: var(--accent); outline: none; background: rgba(124, 92, 252, 0.05); }
-    .custom-input[readonly] { background: rgba(0,0,0,0.2); opacity: 0.7; cursor: not-allowed; }
-    select.custom-input { background-color: var(--bg-secondary); }
-    
-    .search-box { display: flex; gap: 10px; }
-    .search-box button { padding: 0 24px; background: var(--accent); color: white; border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
-    .search-box button:hover { background: #6b4cf0; }
-    
-    .customer-info-box { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 15px 20px; border-radius: var(--radius-md); display: none; margin-bottom: 24px; }
-    .customer-info-box.active { display: block; animation: fadeIn 0.4s ease; }
-    .customer-info-box p { margin: 5px 0; color: var(--text-primary); }
-    .customer-info-box p strong { color: var(--success); }
-    
-    .btn-submit { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--accent), #a78bfa); color: white; border: none; border-radius: var(--radius-md); font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--accent-glow); }
-</style>
+
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
-        <div class="page-container">
+        <div class="page-content-wrapper">
+            <?php if (isset($_SESSION['flash_success'])): ?>
+                <div class="alert alert-success" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding:15px; border-radius:12px; margin-bottom:24px;">
+                    <span class="material-symbols-rounded">check_circle</span> <?php echo $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
+                </div>
+            <?php endif; ?>
+            
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('new')">
+                    <span class="material-symbols-rounded">add_circle</span> Lập phiếu bảo trì mới
+                </div>
+                <div class="nav-tab" onclick="switchTab('history')">
+                    <span class="material-symbols-rounded">history</span> Lịch sử lập phiếu
+                </div>
+            </div>
+
+            <div class="tab-pane active" id="tab-new">
             <div class="form-card">
-                <h2 class="form-title"><span class="material-symbols-rounded">support_agent</span> Tiếp Nhận Bảo Trì</h2>
+                <h2 class="card-title"><span class="material-symbols-rounded">support_agent</span> Lập Phiếu Tiếp Nhận Bảo Trì</h2>
                 
                 <?php echo $msg; ?>
                 
@@ -195,11 +201,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnSave'])) {
                     </button>
                 </form>
             </div>
+            </div> <!-- End tab-new -->
+
+            <div class="tab-pane" id="tab-history">
+                <div class="form-card">
+                    <div class="card-title" style="border-bottom:none; margin-bottom: 20px;">
+                        <span class="material-symbols-rounded">history</span> Lịch sử tiếp nhận bảo trì
+                    </div>
+                    <?php if ($history_result && $history_result->num_rows > 0): ?>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Thời gian</th>
+                                <th>Khách hàng</th>
+                                <th>Sản phẩm (Serial)</th>
+                                <th>Người lập</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $history_result->fetch_assoc()): 
+                                $statusClass = 'badge-info';
+                                if(strpos($row['trangThai'], 'Chờ duyệt') !== false) $statusClass = 'badge-warning';
+                                elseif($row['trangThai'] == 'Đã xuất hãng') $statusClass = 'badge-primary';
+                                elseif($row['trangThai'] == 'Hoàn thành') $statusClass = 'badge-success';
+                                elseif($row['trangThai'] == 'Đã hủy') $statusClass = 'badge-danger';
+                            ?>
+                            <tr>
+                                <td><strong>#<?= $row['maPhieuBT'] ?></strong></td>
+                                <td><?= date('d/m/Y H:i', strtotime($row['ngayTiepNhan'])) ?></td>
+                                <td><?= htmlspecialchars($row['tenKH'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($row['tenMau']) ?> (<?= htmlspecialchars($row['soSerial']) ?>)</td>
+                                <td><?= htmlspecialchars($row['tenNVLap'] ?? 'N/A') ?></td>
+                                <td><span class="badge-pill <?= $statusClass ?>"><?= $row['trangThai'] ?></span></td>
+                                <td>
+                                    <?php if ($row['trangThai'] == 'Chờ duyệt tiếp nhận'): ?>
+                                        <a href="sua_baotri.php?id=<?= $row['maPhieuBT'] ?>" class="btn btn-secondary"><span class="material-symbols-rounded" style="font-size:16px;">edit</span> Sửa</a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.5;">inbox</span>
+                            <p>Chưa có lịch sử lập phiếu bảo trì nào.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div> <!-- End tab-history -->
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector('.nav-tab[onclick*="' + tabId + '"]').classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
+
 async function checkInvoice() {
     const maHoaDon = document.getElementById('maHoaDon').value;
     if (!maHoaDon) {

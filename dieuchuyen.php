@@ -65,8 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuDC'])) {
             
             writeLog($conn, 'ĐIỀU CHUYỂN', "Đã lập phiếu điều chuyển #$maPhieuDC - Chuyển $soLuong sản phẩm");
 
-            $msg_dc = "Lập phiếu điều chuyển thành công (Chờ duyệt)! Phiếu #$maPhieuDC";
-            $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_dc', 'dieuchuyen.php')");
+            // Thông báo
+            $user_link = ($_SESSION['role_id'] == 1) ? 'duyet_phieu.php' : 'dieuchuyen.php';
+            $msg_dc = "Lập phiếu điều chuyển thành công (Chờ duyệt)! Phiếu #$maPhieuDC - $soLuong SP";
+            $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_dc', '$user_link')");
 
             $msg_admin = "Có phiếu điều chuyển mới #$maPhieuDC cần phê duyệt ($soLuong SP)";
             $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'duyet_phieu.php')");
@@ -83,75 +85,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuDC'])) {
 
 $khos = $conn->query("SELECT * FROM kho");
 $khos_arr = $khos->fetch_all(MYSQLI_ASSOC);
+
+// Lấy lịch sử điều chuyển
+$sql_history = "SELECT p.*, kx.tenKho as khoXuat, kn.tenKho as khoNhap, nv.hoTen,
+                (SELECT COUNT(*) FROM chitietdieuchuyen ct WHERE ct.maPhieuDC = p.maPhieuDC) as soLuong 
+                FROM phieudieuchuyen p 
+                LEFT JOIN kho kx ON p.maKhoXuat = kx.maKho
+                LEFT JOIN kho kn ON p.maKhoNhap = kn.maKho
+                LEFT JOIN nhanvien nv ON p.maNhanVienLap = nv.maNhanVien ";
+if ($_SESSION['role_id'] != 1) {
+    $sql_history .= " WHERE p.maNhanVienLap = $user_id ";
+}
+$sql_history .= " ORDER BY p.ngayTao DESC LIMIT 50";
+$history_result = $conn->query($sql_history);
 ?>
 
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<style>
-    .form-center-container { max-width: 900px; margin: 0 auto; animation: fadeInUp 0.5s ease; }
-    
-    .welcome-banner { 
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05)); 
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        color: var(--text-primary); 
-        padding: 28px 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 28px; 
-    }
-    
-    .form-card { 
-        background: var(--bg-card); 
-        backdrop-filter: blur(12px);
-        padding: 32px; 
-        border-radius: var(--radius-xl); 
-        margin-bottom: 24px; 
-        border: 1px solid var(--glass-border); 
-    }
-    
-    .card-title { 
-        font-size: 1.15rem; 
-        font-weight: 700; 
-        margin-bottom: 24px; 
-        padding-bottom: 12px; 
-        border-bottom: 1px dashed var(--glass-border); 
-        display: flex; align-items: center; gap: 8px;
-    }
-    
-    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .form-group label { display: block; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; font-size: 13px; text-transform: uppercase; }
-    
-    .custom-input { 
-        width: 100%; padding: 14px 16px; 
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--glass-border); 
-        border-radius: var(--radius-md); 
-        outline: none; color: var(--text-primary);
-    }
-    
-    .custom-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
-    .custom-input option { background: var(--bg-secondary); color: var(--text-primary); }
-    
-    .serial-row { 
-        display: flex; gap: 16px; margin-bottom: 16px; align-items: center; 
-        background: rgba(255,255,255,0.02); padding: 12px 20px; 
-        border-radius: var(--radius-md); border: 1px solid var(--glass-border); 
-    }
-    
-    .btn-action { padding: 14px 24px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-submit { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-size: 1rem; }
-    .btn-add { background: var(--bg-tertiary); color: var(--text-primary); border: 1px dashed var(--glass-border); }
-    .btn-remove { background: var(--danger-bg); color: var(--danger); padding: 14px; }
-</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
         <div class="form-center-container">
-            <div class="welcome-banner">
-                <h1 style="margin: 0 0 8px 0; font-size: 1.6rem; color: #f59e0b;"><span class="material-symbols-rounded">local_shipping</span> Lập Phiếu Điều Chuyển Kho</h1>
-                <p style="margin: 0; opacity: 0.8; font-size: 14px;">Chuyển hàng hóa từ kho này sang kho khác.</p>
+            <div class="welcome-banner-transfer">
+                <h1><span class="material-symbols-rounded">local_shipping</span> Lập Phiếu Điều Chuyển Kho</h1>
+                <p>Chuyển hàng hóa từ kho này sang kho khác.</p>
             </div>
 
             <?php echo $msg; ?>
@@ -161,8 +121,18 @@ $khos_arr = $khos->fetch_all(MYSQLI_ASSOC);
                 </div>
             <?php endif; ?>
 
-            <form method="POST" onsubmit="return confirm('Xác nhận lập phiếu điều chuyển?');">
-                <div class="form-card">
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('new')">
+                    <span class="material-symbols-rounded">add_circle</span> Lập phiếu mới
+                </div>
+                <div class="nav-tab" onclick="switchTab('history')">
+                    <span class="material-symbols-rounded">history</span> Lịch sử lập phiếu
+                </div>
+            </div>
+
+            <div class="tab-pane active" id="tab-new">
+                <form method="POST" onsubmit="return confirm('Xác nhận lập phiếu điều chuyển?');">
+                    <div class="form-card">
                     <div class="card-title"><span class="material-symbols-rounded" style="color: #f59e0b;">route</span> 1. Thông tin Kho</div>
                     <div class="input-grid">
                         <div class="form-group">
@@ -205,11 +175,71 @@ $khos_arr = $khos->fetch_all(MYSQLI_ASSOC);
                     </button>
                 </div>
             </form>
+            </div> <!-- End tab-new -->
+
+            <!-- TAB LỊCH SỬ -->
+            <div class="tab-pane" id="tab-history">
+                <div class="form-card">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">history</span> 
+                        Lịch sử lập phiếu điều chuyển
+                    </div>
+                    <?php if ($history_result && $history_result->num_rows > 0): ?>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Thời gian</th>
+                                <th>Từ Kho</th>
+                                <th>Đến Kho</th>
+                                <th>Lý do</th>
+                                <th>Sản phẩm</th>
+                                <th>Người lập</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $history_result->fetch_assoc()): ?>
+                            <tr>
+                                <td><strong>#<?= $row['maPhieuDC'] ?></strong></td>
+                                <td><?= date('d/m/Y H:i', strtotime($row['ngayLap'])) ?></td>
+                                <td><?= htmlspecialchars($row['khoXuat'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($row['khoNhap'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($row['ghiChu'] ?? 'N/A') ?></td>
+                                <td><?= $row['soLuong'] ?> SP</td>
+                                <td><?= htmlspecialchars($row['hoTen'] ?? 'N/A') ?></td>
+                                <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
+                                <td>
+                                    <?php if ($row['trangThai'] == 'Chờ duyệt'): ?>
+                                        <a href="sua_dieuchuyen.php?id=<?= $row['maPhieuDC'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 13px;">Sửa phiếu</a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <span class="material-symbols-rounded" style="font-size: 48px; opacity: 0.5;">inbox</span>
+                            <p>Chưa có lịch sử lập phiếu điều chuyển nào.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div> <!-- End tab-history -->
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    document.querySelector('.nav-tab[onclick*="' + tabId + '"]').classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
+
 function addSerialRow() {
     const container = document.getElementById('serial-container');
     const newRow = document.createElement('div');

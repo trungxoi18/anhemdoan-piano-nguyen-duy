@@ -127,145 +127,176 @@ if ($res_policies) {
             <p>Chào mừng trở lại bảng điều khiển hệ thống quản lý. Tại đây bạn có thể kiểm soát mọi hoạt động kinh doanh, tồn kho và các dịch vụ sau bán hàng một cách trực quan nhất.</p>
         </div>
 
-        <!-- 2. KPI Row -->
-        <div class="kpi-row">
+        <!-- 2. KPI Row (Premium UI) -->
+        <div class="premium-kpi-row">
             <?php if ($role_id == 1) { ?>   
-                <div class="kpi-card" style="color: #34d399;">
-                    <div class="kpi-icon" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">
+                <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);">
+                    <div class="premium-kpi-icon">
                         <span class="material-symbols-rounded">payments</span>
                     </div>
-                    <div class="kpi-info">
+                    <div class="premium-kpi-info">
                         <p><?php echo __('monthly_revenue'); ?></p>
-                        <h3 style="color: var(--text-primary); margin-bottom: 4px;"><?php echo number_format($doanh_thu, 0, ',', '.'); ?>đ</h3>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Thực thu: <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ</span>
+                        <h3><?php echo number_format($doanh_thu, 0, ',', '.'); ?>đ</h3>
+                        <span class="kpi-sub">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">trending_up</span>
+                            Thực thu: <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ
+                        </span>
                     </div>
                 </div>
-                <div class="kpi-card" style="color: #f87171;">
-                    <div class="kpi-icon" style="background: rgba(248, 113, 113, 0.15); color: #f87171;">
+                <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2);">
+                    <div class="premium-kpi-icon">
                         <span class="material-symbols-rounded">pending_actions</span>
                     </div>
-                    <div class="kpi-info">
+                    <div class="premium-kpi-info">
                         <p><?php echo __('pending_requests'); ?></p>
-                        <h3 style="color: var(--text-primary); margin-bottom: 4px;"><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Bao gồm hóa đơn & phiếu</span>
+                        <h3><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?></h3>
+                        <span class="kpi-sub">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #ef4444;">error</span>
+                            Bao gồm hóa đơn & phiếu
+                        </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="kpi-card" style="color: #60a5fa;">
-                    <div class="kpi-icon" style="background: rgba(96, 165, 250, 0.15); color: #60a5fa;">
+                <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);">
+                    <div class="premium-kpi-icon">
                         <span class="material-symbols-rounded">inventory_2</span>
                     </div>
-                    <div class="kpi-info">
+                    <div class="premium-kpi-info">
                         <p><?php echo __('total_pianos'); ?></p>
-                        <h3 style="color: var(--text-primary); margin-bottom: 4px;"><?php echo number_format($tong_dan, 0, ',', '.'); ?></h3>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Vốn: <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ</span>
+                        <h3><?php echo number_format($tong_dan, 0, ',', '.'); ?></h3>
+                        <span class="kpi-sub">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #3b82f6;">account_balance_wallet</span>
+                            Vốn: <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ
+                        </span>
                     </div>
                 </div>
-                <div class="kpi-card" style="color: #fbbf24;">
-                    <div class="kpi-icon" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+                <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);">
+                    <div class="premium-kpi-icon">
                         <span class="material-symbols-rounded">priority_high</span>
                     </div>
-                    <div class="kpi-info">
+                    <div class="premium-kpi-info">
                         <p><?php echo __('low_stock'); ?></p>
-                        <h3 style="color: var(--text-primary); margin-bottom: 4px;"><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Mẫu mã &lt;= 5 serial</span>
+                        <h3><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?></h3>
+                        <span class="kpi-sub">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #f59e0b;">warning</span>
+                            Mẫu mã &lt;= 5 serial
+                        </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="kpi-card" style="color: #7c5cfc;">
-                    <div class="kpi-icon" style="background: rgba(124, 92, 252, 0.15); color: #7c5cfc;">
-                        <span class="material-symbols-rounded">shopping_bag</span>
+                <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);">
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">local_shipping</span>
                     </div>
-                    <div class="kpi-info">
-                        <p>Đơn hàng đang xử lý</p>
-                        <h3 style="color: var(--text-primary); margin-bottom: 4px;"><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Chờ duyệt/giao</span>
+                    <div class="premium-kpi-info">
+                        <p>Đơn đang xử lý</p>
+                        <h3><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?></h3>
+                        <span class="kpi-sub">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #8b5cf6;">hourglass_top</span>
+                            Chờ duyệt / Đang giao
+                        </span>
                     </div>
                 </div>
             <?php } ?>
         </div>
 
-        <!-- 3. Featured Products -->
-        <div class="featured-section">
-            <div class="section-header">
-                <span class="material-symbols-rounded" style="color: var(--accent);">star</span> 
-                Sản phẩm mới nhập
-            </div>
-            <div class="featured-grid">
-                <?php foreach ($featured_products as $p): ?>
-                <div class="mini-product">
-                    <div class="mini-product-img">
-                        <?php if (!empty($p['hinhAnh'])): ?>
-                            <img src="images/<?php echo htmlspecialchars($p['hinhAnh']); ?>" alt="Piano">
-                        <?php else: ?>
-                            <span class="material-symbols-rounded" style="font-size: 48px; color: rgba(255,255,255,0.1);">music_note</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="mini-product-info">
-                        <div class="mini-product-brand"><?php echo htmlspecialchars($p['tenHang']); ?></div>
-                        <div class="mini-product-name"><?php echo htmlspecialchars($p['tenMau']); ?></div>
-                    </div>
+        <!-- 3. Featured Products (Premium UI) -->
+        <div class="section-title-premium">
+            <span class="material-symbols-rounded" style="color: var(--accent, #3b82f6);">star</span> 
+            Sản phẩm mới nhập
+        </div>
+        <div class="premium-featured-grid">
+            <?php foreach ($featured_products as $p): ?>
+            <div class="premium-product-card">
+                <div class="premium-product-img-wrapper">
+                    <?php if (!empty($p['hinhAnh'])): ?>
+                        <img src="images/<?php echo htmlspecialchars($p['hinhAnh']); ?>" alt="Piano">
+                    <?php else: ?>
+                        <span class="material-symbols-rounded" style="font-size: 48px; color: #cbd5e1;">music_note</span>
+                    <?php endif; ?>
                 </div>
-                <?php endforeach; ?>
-                <?php if (count($featured_products) == 0): ?>
-                    <p style="color: var(--text-muted); font-size: 14px;">Chưa có sản phẩm nào.</p>
-                <?php endif; ?>
+                <div class="premium-product-info">
+                    <div class="premium-product-brand"><?php echo htmlspecialchars($p['tenHang']); ?></div>
+                    <div class="premium-product-name"><?php echo htmlspecialchars($p['tenMau']); ?></div>
+                </div>
             </div>
+            <?php endforeach; ?>
+            <?php if (count($featured_products) == 0): ?>
+                <p style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1;">Chưa có sản phẩm nào.</p>
+            <?php endif; ?>
         </div>
 
-        <!-- 4. Quick Access Grid -->
-        <div class="section-header">
-            <span class="material-symbols-rounded" style="color: var(--accent-secondary);">bolt</span> 
+        <!-- 4. Quick Access Grid (Premium UI) -->
+        <div class="section-title-premium">
+            <span class="material-symbols-rounded" style="color: var(--accent-secondary, #8b5cf6);">bolt</span> 
             Truy cập nhanh
         </div>
-        <div class="quick-grid">
+        <div class="premium-quick-grid">
             
             <?php if ($role_id == 2 || $role_id == 1) {  ?>
-                <a href="hoadon_moi.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">add_shopping_cart</span>
-                    <span class="label"><?php echo __('new_invoice'); ?></span>
+                <a href="hoadon_moi.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">add_shopping_cart</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('new_invoice'); ?></span>
                 </a>
-                <a href="khachhang.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">groups</span>
-                    <span class="label"><?php echo __('manage_customers'); ?></span>
+                <a href="khachhang.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">groups</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('manage_customers'); ?></span>
                 </a>
-                <a href="tiepnhan_baohanh.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">build_circle</span>
-                    <span class="label"><?php echo __('warranty_receive'); ?></span>
+                <a href="quanly_baotri.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">build_circle</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('warranty_receive'); ?></span>
                 </a>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) { ?>
-                <a href="phieunhap.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">input</span>
-                    <span class="label"><?php echo __('import_ticket'); ?></span>
+                <a href="phieunhap.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">input</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('import_ticket'); ?></span>
                 </a>
-                <a href="phieuxuat.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">output</span>
-                    <span class="label"><?php echo __('export_ticket'); ?></span>
+                <a href="phieuxuat.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">output</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('export_ticket'); ?></span>
                 </a>
-                <a href="dieuchuyen.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">local_shipping</span>
-                    <span class="label"><?php echo __('internal_transfer'); ?></span>
+                <a href="dieuchuyen.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">local_shipping</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('internal_transfer'); ?></span>
                 </a>
-                <a href="baocao_nhapxuatton.php" class="quick-card staff">
-                    <span class="material-symbols-rounded">summarize</span>
-                    <span class="label"><?php echo __('import_export_report'); ?></span>
+                <a href="baocao_nhapxuatton.php" class="premium-quick-card staff">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">summarize</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('import_export_report'); ?></span>
                 </a>
             <?php } ?>
 
             <?php if ($role_id == 1) { ?>
-                <a href="quanly_hanghoa.php" class="quick-card admin">
-                    <span class="material-symbols-rounded">piano</span>
-                    <span class="label"><?php echo __('manage_goods'); ?></span>
+                <a href="quanly_hanghoa.php" class="premium-quick-card admin">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">piano</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('manage_goods'); ?></span>
                 </a>
-                <a href="duyet_phieu.php" class="quick-card admin">
-                    <span class="material-symbols-rounded">fact_check</span>
-                    <span class="label"><?php echo __('approve_tickets'); ?></span>
+                <a href="duyet_phieu.php" class="premium-quick-card admin">
+                    <div class="premium-quick-icon-wrapper">
+                        <span class="material-symbols-rounded">fact_check</span>
+                    </div>
+                    <span class="premium-quick-label"><?php echo __('approve_tickets'); ?></span>
                 </a>
             <?php } ?>
 

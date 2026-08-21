@@ -24,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $conn->begin_transaction();
     try {
         if ($type == 'nhap') {
-            // Kiểm tra trạng thái hiện tại
-            $res = $conn->query("SELECT trangThai FROM phieunhap WHERE maPhieuNhap = $id");
+            // Kiểm tra trạng thái hiện tại (Lock row để tránh race condition)
+            $res = $conn->query("SELECT trangThai FROM phieunhap WHERE maPhieuNhap = $id FOR UPDATE");
             if ($res->num_rows == 0) throw new Exception("Không tìm thấy Phiếu Nhập!");
             $pt = $res->fetch_assoc()['trangThai'];
             if ($pt != 'Chờ duyệt') throw new Exception("Phiếu Nhập này không ở trạng thái Chờ duyệt.");
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } elseif ($type == 'xuat') {
             // Kiểm tra trạng thái hiện tại
-            $res = $conn->query("SELECT trangThai, maHoaDon FROM phieuxuat WHERE maPhieuXuat = $id");
+            $res = $conn->query("SELECT trangThai, maHoaDon FROM phieuxuat WHERE maPhieuXuat = $id FOR UPDATE");
             if ($res->num_rows == 0) throw new Exception("Không tìm thấy Phiếu Xuất!");
             $row = $res->fetch_assoc();
             $pt = $row['trangThai'];
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } elseif ($type == 'dieuchuyen') {
             // Kiểm tra trạng thái hiện tại
-            $res = $conn->query("SELECT trangThai, maKhoNhap FROM phieudieuchuyen WHERE maPhieuDC = $id");
+            $res = $conn->query("SELECT trangThai, maKhoNhap FROM phieudieuchuyen WHERE maPhieuDC = $id FOR UPDATE");
             if ($res->num_rows == 0) throw new Exception("Không tìm thấy Phiếu Điều Chuyển!");
             $row = $res->fetch_assoc();
             $pt = $row['trangThai'];

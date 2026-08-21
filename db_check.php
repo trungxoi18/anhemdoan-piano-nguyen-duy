@@ -1,5 +1,10 @@
 <?php
 require 'db.php';
-$res = $conn->query('SELECT maMau, COUNT(*) as cnt FROM DanSerial WHERE trangThai = "Trong kho" GROUP BY maMau');
-echo "Count by maMau:\n";
-while($row = $res->fetch_array()) echo $row['maMau'] . ' - ' . $row['cnt'] . "\n";
+
+echo "=== MAUDAN COLUMNS ===\n";
+$res = $conn->query('SHOW COLUMNS FROM MauDan');
+while($row = $res->fetch_assoc()) echo $row['Field'] . ' - ' . $row['Type'] . "\n";
+
+echo "\n=== DANSERIAL COLUMNS ===\n";
+$res = $conn->query('SHOW COLUMNS FROM DanSerial');
+while($row = $res->fetch_assoc()) echo $row['Field'] . ' - ' . $row['Type'] . "\n";

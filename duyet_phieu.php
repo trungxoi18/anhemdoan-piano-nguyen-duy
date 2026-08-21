@@ -37,59 +37,33 @@ $title = 'Phê Duyệt Phiếu';
 ?>
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
-<style>
-        .tabs { display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--glass-border); padding-bottom: 16px; }
-        .tab-btn { background: transparent; color: var(--text-muted); border: none; font-size: 16px; font-weight: 600; cursor: pointer; padding: 12px 24px; border-radius: 8px; transition: 0.3s; }
-        .tab-btn.active { background: rgba(59, 130, 246, 0.1); color: var(--accent); }
-        .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; }
-        
-        .phieu-card { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: 0.3s; }
-        .phieu-card:hover { border-color: rgba(255,255,255,0.1); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-        .phieu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--glass-border); }
-        .phieu-title { font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-        .phieu-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .detail-item { font-size: 14px; }
-        .detail-item span { color: var(--text-muted); display: block; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
-        
-        .action-buttons { display: flex; gap: 12px; justify-content: flex-end; }
-        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 14px; text-decoration: none;}
-        .btn-approve { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
-        .btn-approve:hover { background: rgba(52, 211, 153, 0.3); }
-        .btn-reject { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
-        .btn-reject:hover { background: rgba(248, 113, 113, 0.3); }
-        .btn-view { background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--glass-border); }
-        .btn-view:hover { background: rgba(255,255,255,0.1); }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-</style>
+
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
     
     <div class="content">
-                <div class="welcome-banner" style="margin-bottom: 24px;">
+                <div class="welcome-banner-approve" style="margin-bottom: 24px;">
                     <h1 style="margin: 0 0 8px 0; font-size: 24px;">Phê Duyệt Phiếu</h1>
                     <p style="margin: 0; color: var(--text-secondary);">Quản lý và phê duyệt các phiếu nhập, xuất kho đang chờ xử lý.</p>
                 </div>
                 
                 <?php echo $msg; ?>
 
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('nhap')">
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="switchTab('nhap')">
                         Phiếu Nhập Chờ Duyệt <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $pn_list->num_rows ?></span>
                     </button>
-                    <button class="tab-btn" onclick="switchTab('xuat')">
+                    <button class="nav-tab" onclick="switchTab('xuat')">
                         Phiếu Xuất Chờ Duyệt <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $px_list->num_rows ?></span>
                     </button>
-                    <button class="tab-btn" onclick="switchTab('dieuchuyen')">
+                    <button class="nav-tab" onclick="switchTab('dieuchuyen')">
                         Phiếu Điều Chuyển <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $dc_list->num_rows ?></span>
                     </button>
                 </div>
 
                 <!-- TAB PHIẾU NHẬP -->
-                <div id="tab-nhap" class="tab-content active">
+                <div id="tab-nhap" class="tab-pane active">
                     <?php if($pn_list->num_rows > 0): ?>
                         <?php while($pn = $pn_list->fetch_assoc()): ?>
                             <div class="phieu-card">
@@ -134,7 +108,7 @@ $title = 'Phê Duyệt Phiếu';
                 </div>
 
                 <!-- TAB PHIẾU XUẤT -->
-                <div id="tab-xuat" class="tab-content">
+                <div id="tab-xuat" class="tab-pane">
                     <?php if($px_list->num_rows > 0): ?>
                         <?php while($px = $px_list->fetch_assoc()): ?>
                             <div class="phieu-card">
@@ -179,7 +153,7 @@ $title = 'Phê Duyệt Phiếu';
                 </div>
 
                 <!-- TAB PHIẾU ĐIỀU CHUYỂN -->
-                <div id="tab-dieuchuyen" class="tab-content">
+                <div id="tab-dieuchuyen" class="tab-pane">
                     <?php if($dc_list->num_rows > 0): ?>
                         <?php while($dc = $dc_list->fetch_assoc()): ?>
                             <div class="phieu-card">
@@ -227,8 +201,8 @@ $title = 'Phê Duyệt Phiếu';
 
 <script>
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(content => content.classList.remove('active'));
             
             event.currentTarget.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
