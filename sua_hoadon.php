@@ -6,7 +6,7 @@ require_once 'db.php';
 require_once 'functions.php';
 
 // Kiểm tra quyền (Chỉ Admin và Sales)
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }

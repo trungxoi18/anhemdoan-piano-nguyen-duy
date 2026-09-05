@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã phê duyệt tài khoản!</div>";
         } catch (Exception $e) {
             $conn->rollback();
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     } elseif ($action == 'reject') {
         $maTaiKhoan = intval($_POST['maTaiKhoan']);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã từ chối tài khoản đăng ký!</div>";
         } catch (Exception $e) {
             $conn->rollback();
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     } elseif ($action == 'update_role') {
         $maTaiKhoan = intval($_POST['maTaiKhoan']);
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             
             $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Cập nhật tài khoản thành công!</div>";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($stmt->error ?: $conn->error) . "</div>";
         }
     } elseif ($action == 'add_account') {
         $hoTen = trim($_POST['hoTen']);
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã tạo tài khoản thành công!</div>";
             } catch (Exception $e) {
                 $conn->rollback();
-                $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+                $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
             }
         }
     }

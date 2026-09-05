@@ -17,6 +17,35 @@ return [
     'menu_profile' => 'Thông tin cá nhân',
     'menu_logout' => 'Đăng xuất',
     
+    // Sidebar Additional
+    'section_inventory' => 'Kho vận',
+    'menu_invoice_create' => 'Lập hóa đơn',
+    'menu_import_slip' => 'Phiếu nhập kho',
+    'menu_export_slip' => 'Phiếu xuất kho',
+    'menu_internal_transfer' => 'Điều chuyển nội bộ',
+    'menu_inventory_report' => 'Báo cáo nhập xuất tồn',
+    'menu_current_stock' => 'Tồn kho hiện tại',
+    'menu_maintenance' => 'Tiếp nhận Bảo trì',
+    'section_system' => 'Hệ thống',
+    'menu_account_roles' => 'Phân quyền tài khoản',
+
+    // phieunhap.php
+    'staff_performing' => 'Nhân viên thực hiện',
+    'today_slips' => 'Hôm nay',
+    'slips_count' => 'phiếu',
+    'stock_count' => 'Tồn kho',
+    'create_new_slip' => 'Lập phiếu mới',
+    'slip_history' => 'Lịch sử lập phiếu',
+    'doc_info' => 'Thông tin chứng từ',
+    'product_details' => 'Chi tiết sản phẩm',
+    'confirm_import' => 'Xác nhận nhập kho',
+    'provider' => 'NHÀ CUNG CẤP',
+    'deliverer_name' => 'HỌ TÊN NGƯỜI GIAO',
+    'doc_number' => 'THEO CHỨNG TỪ SỐ',
+    'doc_date' => 'NGÀY CHỨNG TỪ',
+    'import_reason' => 'LÝ DO NHẬP KHO',
+    'import_details_title' => 'Chi tiết đàn nhập kho',
+    
     // Dashboard KPI
     'hello' => 'Xin chào,',
     'monthly_revenue' => 'Doanh thu tháng này',

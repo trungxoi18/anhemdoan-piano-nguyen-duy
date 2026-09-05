@@ -218,7 +218,7 @@ $categories = $conn->query('SELECT maLoai, tenLoai FROM LoaiDan')->fetch_all(MYS
         $stmt = $conn->prepare($sql);
         if ($types) {
             // Dynamically bind parameters
-            $bind_names[] = $types;
+            $bind_names = [$types];
             foreach ($params as $key => $value) {
                 $bind_name = 'bind' . $key;
                 $$bind_name = $value;

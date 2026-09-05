@@ -5,7 +5,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'db.php';
 require_once 'functions.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 3])) {
+// Kiểm tra quyền (Admin và Thủ kho)
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }

@@ -134,8 +134,8 @@ if ($type == 'hoadon') {
     // Lấy thông tin Kho từ sản phẩm đầu tiên
     $tenKho = '';
     $diaChiKho = '';
-    if (count($details) > 0) {
-        $maKho_first = $details[0]['maKho'];
+    if (count($details) > 0 && !empty($details[0]['maKho'])) {
+        $maKho_first = intval($details[0]['maKho']);
         $st_kho = $conn->query("SELECT tenKho, diaChi FROM kho WHERE maKho = $maKho_first");
         if ($st_kho && $k = $st_kho->fetch_assoc()) {
             $tenKho = $k['tenKho'];
@@ -174,8 +174,8 @@ if ($type == 'hoadon') {
     // Get Kho info from the first item
     $tenKho = '';
     $diaChiKho = '';
-    if(count($details) > 0) {
-        $maKho_first = $details[0]['maKho'];
+    if(count($details) > 0 && !empty($details[0]['maKho'])) {
+        $maKho_first = intval($details[0]['maKho']);
         $st_kho = $conn->query("SELECT tenKho, diaChi FROM kho WHERE maKho = $maKho_first");
         if($st_kho && $k = $st_kho->fetch_assoc()) {
             $tenKho = $k['tenKho'];

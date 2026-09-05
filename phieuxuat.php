@@ -7,7 +7,7 @@ require_once 'db.php';
 require_once 'functions.php';
 
 // Kiểm tra quyền
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }
@@ -59,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
             
             $maKhoSelected = intval($list_makho[$index]);
             
-            // Bước 1: Kiểm tra serial có tồn tại trong hệ thống và thuộc đúng kho đã chọn
-            $st_check_kho = $conn->prepare("SELECT maSerial, trangThai FROM danserial WHERE soSerial = ? AND maKho = ?");
+            // Bước 1: Khóa dòng (Row-level lock) Serial này để tránh đụng độ
+            $st_check_kho = $conn->prepare("SELECT maSerial, trangThai FROM danserial WHERE soSerial = ? AND maKho = ? FOR UPDATE");
             $st_check_kho->bind_param("si", $serial, $maKhoSelected);
             $st_check_kho->execute();
             $res_kho = $st_check_kho->get_result();
@@ -78,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuXuat'])) {
             }
             $row_kho = $res_kho->fetch_assoc();
 
-            // Bước 2: Kiểm tra trạng thái serial
+            // Bước 2: Kiểm tra trạng thái serial (State Machine Validation khắt khe)
             if ($maHoaDon && !in_array($row_kho['trangThai'], ['Trong kho', 'Chờ giao'])) {
-                throw new Exception("Mã Serial [$serial] không thuộc hóa đơn hoặc không sẵn sàng (Trạng thái: {$row_kho['trangThai']})!");
+                throw new Exception("Mã Serial [$serial] không thuộc hóa đơn hoặc không sẵn sàng (Trạng thái hiện tại: {$row_kho['trangThai']})!");
             } elseif (!$maHoaDon && $row_kho['trangThai'] !== 'Trong kho') {
-                throw new Exception("Mã Serial [$serial] hiện không sẵn sàng để xuất (Trạng thái: {$row_kho['trangThai']})!");
+                throw new Exception("Mã Serial [$serial] hiện không sẵn sàng để xuất trực tiếp (Trạng thái hiện tại: {$row_kho['trangThai']})!");
             }
             
             $maSerial = $row_kho['maSerial'];
@@ -139,7 +139,7 @@ foreach($khos_data as $k) {
 $prefill_serials = [];
 if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
     $maHoaDon = intval($_GET['maHoaDon']);
-    $sql_serials = "SELECT ds.soSerial FROM chitiethoadon cthd 
+    $sql_serials = "SELECT ds.soSerial, ds.maKho FROM chitiethoadon cthd 
                     JOIN danserial ds ON cthd.maSerial = ds.maSerial 
                     WHERE cthd.maHoaDon = ?";
     $stmt_serials = $conn->prepare($sql_serials);
@@ -147,7 +147,10 @@ if (isset($_GET['maHoaDon']) && !empty($_GET['maHoaDon'])) {
     $stmt_serials->execute();
     $res_serials = $stmt_serials->get_result();
     while ($r = $res_serials->fetch_assoc()) {
-        $prefill_serials[] = $r['soSerial'];
+        $prefill_serials[] = [
+            'soSerial' => $r['soSerial'],
+            'maKho' => $r['maKho']
+        ];
     }
 }
 
@@ -247,12 +250,14 @@ $history_result = $conn->query($sql_history);
                                 </button>
                             </div>
                         <?php else: ?>
-                            <?php foreach($prefill_serials as $index => $serial): ?>
+                            <?php foreach($prefill_serials as $index => $item): ?>
                             <div class="serial-row" style="display: flex; gap: 10px; align-items: center;">
-                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" value="<?= htmlspecialchars($serial) ?>" style="flex: 2;" required>
+                                <input type="text" name="soSerial[]" class="custom-input" placeholder="Nhập/Quét mã Serial" value="<?= htmlspecialchars($item['soSerial']) ?>" style="flex: 2;" required>
                                 <select name="maKhoList[]" class="custom-input" style="flex: 1;" required>
                                     <option value="">-- Chọn Kho --</option>
-                                    <?= $kho_options_html ?>
+                                    <?php foreach($khos_data as $k): ?>
+                                        <option value="<?= $k['maKho'] ?>" <?= ($item['maKho'] == $k['maKho']) ? 'selected' : '' ?>><?= htmlspecialchars($k['tenKho']) ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <?php if($index == 0): ?>
                                 <button type="button" class="btn-action btn-add" onclick="addSerialRow()">

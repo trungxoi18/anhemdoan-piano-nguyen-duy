@@ -7,7 +7,7 @@ require_once 'db.php';
 require_once 'functions.php';
 
 // Kiểm tra quyền (Chỉ Admin và Sales được lập hóa đơn)
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }
@@ -87,31 +87,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $serial = trim($list_serial[$i]);
             if(empty($serial)) continue;
             
-            // Kiểm tra Serial tồn tại, đang Trong kho và lấy giaBan từ DB
+            // Khóa dòng (Row-level lock) Serial này để tránh đụng độ
             $st_check = $conn->prepare(
                 "SELECT ds.maSerial, ds.trangThai, ds.giaBan, md.tenMau
                  FROM danserial ds
                  JOIN maudan md ON ds.maMau = md.maMau
-                 WHERE ds.soSerial = ? AND ds.trangThai = 'Trong kho'"
+                 WHERE ds.soSerial = ? FOR UPDATE"
             );
             $st_check->bind_param("s", $serial);
             $st_check->execute();
             $res = $st_check->get_result();
             
             if ($res->num_rows == 0) {
-                // Kiểm tra xem serial có tồn tại nhưng sai trạng thái không
-                $st_any = $conn->prepare("SELECT trangThai FROM danserial WHERE soSerial = ?");
-                $st_any->bind_param("s", $serial);
-                $st_any->execute();
-                $res_any = $st_any->get_result();
-                if ($res_any->num_rows > 0) {
-                    $r_any = $res_any->fetch_assoc();
-                    throw new Exception("Serial [$serial] không sẵn sàng để bán (Trạng thái: {$r_any['trangThai']})");
-                }
                 throw new Exception("Mã Serial [$serial] không tồn tại trong hệ thống!");
             }
             
             $row = $res->fetch_assoc();
+            
+            // Validate State Machine khắt khe sau khi đã lock
+            if ($row['trangThai'] !== 'Trong kho') {
+                throw new Exception("Serial [$serial] không sẵn sàng để bán (Trạng thái hiện tại: {$row['trangThai']})");
+            }
+            
             $maSerial = $row['maSerial'];
             $donGia   = (float)$row['giaBan']; // ← Lấy giá niêm yết từ DB
             
@@ -150,6 +147,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Cập nhật lại tổng tiền cho hóa đơn
         $conn->query("UPDATE hoadon SET tongTien = $tongTienCuoi WHERE maHoaDon = $maHoaDon");
 
+        // Xử lý tùy chọn Tự động xuất kho
+        $autoExport = isset($_POST['auto_export']) && $_POST['auto_export'] == '1';
+        $maPhieuXuat = null;
+        if ($autoExport) {
+            // Lấy thông tin khách hàng làm người nhận
+            $st_kh = $conn->prepare("SELECT hoTen FROM khachhang WHERE maKhachHang = ?");
+            $st_kh->bind_param("i", $maKhachHang);
+            $st_kh->execute();
+            $kh_res = $st_kh->get_result();
+            $tenKhachHang = $kh_res->num_rows > 0 ? $kh_res->fetch_assoc()['hoTen'] : '';
+
+            $lyDoXuat = "Xuất bán theo hóa đơn #$maHoaDon";
+            $sql_phieu = "INSERT INTO phieuxuat (maNhanVien, maHoaDon, nguoiNhanHang, soChungTu, ngayXuat, lyDoXuat, trangThai) VALUES (?, ?, ?, ?, NOW(), ?, 'Chờ duyệt')";
+            $soChungTu = "HĐ" . $maHoaDon;
+            $stmt_px = $conn->prepare($sql_phieu);
+            $stmt_px->bind_param("iisss", $user_id, $maHoaDon, $tenKhachHang, $soChungTu, $lyDoXuat);
+            $stmt_px->execute();
+            $maPhieuXuat = $conn->insert_id;
+
+            foreach ($list_serial as $serial) {
+                $serial = trim($serial);
+                if (empty($serial)) continue;
+                // Lấy maSerial
+                $st_s = $conn->prepare("SELECT maSerial FROM danserial WHERE soSerial = ?");
+                $st_s->bind_param("s", $serial);
+                $st_s->execute();
+                $r_s = $st_s->get_result()->fetch_assoc();
+                if ($r_s) {
+                    $mS = $r_s['maSerial'];
+                    $conn->query("INSERT INTO chitietphieuxuat (maPhieuXuat, maSerial) VALUES ($maPhieuXuat, $mS)");
+                    $conn->query("UPDATE danserial SET trangThai = 'Chờ xuất' WHERE maSerial = $mS");
+                }
+            }
+            $conn->query("UPDATE hoadon SET trangThai = 'Đang giao' WHERE maHoaDon = $maHoaDon");
+            writeLog($conn, 'XUẤT KHO', "Tự động lập phiếu xuất #$maPhieuXuat kèm theo hóa đơn #$maHoaDon");
+        }
+
         $conn->commit();
         
         // Ghi log
@@ -159,15 +193,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $msg_user = "Đã lập hóa đơn thành công #" . $maHoaDon;
         $conn->query("INSERT INTO ThongBao (maTaiKhoan, noiDung, link) VALUES ($user_id, '$msg_user', 'hoadon_action.php?id=$maHoaDon')");
 
-        // Thêm thông báo cho Thủ kho (maVaiTro = 3)
-        $msg_thukho = "Nhập đơn xuất cho hóa đơn #" . $maHoaDon;
-        $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (3, '$msg_thukho', 'hoadon_action.php?id=$maHoaDon')");
+        if (!$autoExport) {
+            // Thêm thông báo cho Thủ kho (maVaiTro = 2) nếu không auto export
+            $msg_thukho = "Cần lập đơn xuất cho hóa đơn #" . $maHoaDon;
+            $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (2, '$msg_thukho', 'hoadon_action.php?id=$maHoaDon')");
+        }
 
         // Thêm thông báo cho Admin (maVaiTro = 1)
-        $msg_admin = "Hóa đơn mới được lập #" . $maHoaDon;
-        $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'hoadon_action.php?id=$maHoaDon')");
+        if ($autoExport) {
+            $msg_admin = "Hóa đơn #$maHoaDon và Phiếu xuất #$maPhieuXuat đang chờ duyệt.";
+            $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'duyet_phieu.php')");
+        } else {
+            $msg_admin = "Hóa đơn mới được lập #" . $maHoaDon;
+            $conn->query("INSERT INTO ThongBao (maVaiTro, noiDung, link) VALUES (1, '$msg_admin', 'hoadon_action.php?id=$maHoaDon')");
+        }
 
-        $_SESSION['flash_success'] = "Lập hóa đơn #$maHoaDon thành công!";
+        $_SESSION['flash_success'] = "Lập hóa đơn #$maHoaDon thành công!" . ($autoExport ? " Phiếu xuất #$maPhieuXuat đã được sinh ra và chờ duyệt." : "");
         header("Location: hoadon_action.php?id=$maHoaDon");
         exit();
     } catch (Exception $e) {
@@ -304,7 +345,11 @@ $history_result = $conn->query($sql_history);
                     </div>
                 </div>
 
-                <div style="text-align: right; padding-bottom: 50px;">
+                <div style="text-align: right; padding-bottom: 50px; display: flex; flex-direction: column; align-items: flex-end; gap: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: rgba(59, 130, 246, 0.1); padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.3); color: var(--sales-text); font-weight: 500;">
+                        <input type="checkbox" name="auto_export" value="1" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        Tự động lập Phiếu xuất kho cho Hóa đơn này
+                    </label>
                     <button type="button" class="btn-action btn-submit" onclick="submitForm()">
                         <span class="material-symbols-rounded">send</span> TẠO HÓA ĐƠN
                     </button>

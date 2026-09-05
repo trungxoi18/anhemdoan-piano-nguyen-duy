@@ -105,6 +105,12 @@ while($row = $res_ct->fetch_assoc()){ $details[] = $row; }
                         <span class="material-symbols-rounded">check_circle</span> Đã xử lý (<?= htmlspecialchars($hd['trangThai']) ?>)
                     </button>
                 <?php endif; ?>
+                
+                <?php if (in_array($_SESSION['role_id'], [1, 2]) && $hd['trangThai'] !== 'Đã hủy'): ?>
+                    <a href="huy_hoadon.php?id=<?php echo $id; ?>" class="btn-large" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);" onclick="return confirm('Bạn có CHẮC CHẮN muốn hủy hóa đơn này? Mọi phiếu xuất liên quan (nếu có) cũng sẽ bị hủy và hàng hóa được trả về Kho!');">
+                        <span class="material-symbols-rounded">cancel</span> Hủy Hóa Đơn
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
