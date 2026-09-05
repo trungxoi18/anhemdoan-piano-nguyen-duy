@@ -440,7 +440,14 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 
                                 <!-- Thao tác -->
                                 <td style="padding: 16px 20px; text-align: right;">
-                                    <button type="button" class="btn" onclick="openSinglePriceModal(<?= $row['maSerial'] ?>, '<?= htmlspecialchars(addslashes($row['tenMau'])) ?>', '<?= htmlspecialchars(addslashes($row['soSerial'])) ?>', <?= $giaNhap ?>, <?= $giaBan ?>)" style="padding: 6px 12px; font-size: 13px; font-weight: 600; <?= $isPriced ? 'background: var(--bg-tertiary); color: var(--accent);' : 'background: linear-gradient(135deg, #10b981, #059669); color: white;' ?>">
+                                    <button type="button" class="btn" 
+                                            data-maserial="<?= $row['maSerial'] ?>"
+                                            data-tenmau="<?= htmlspecialchars($row['tenMau'], ENT_QUOTES, 'UTF-8') ?>"
+                                            data-soserial="<?= htmlspecialchars($row['soSerial'], ENT_QUOTES, 'UTF-8') ?>"
+                                            data-gianhap="<?= $giaNhap ?>"
+                                            data-giaban="<?= $giaBan ?>"
+                                            onclick="openSinglePriceModal(this)" 
+                                            style="padding: 6px 12px; font-size: 13px; font-weight: 600; <?= $isPriced ? 'background: var(--bg-tertiary); color: var(--accent);' : 'background: linear-gradient(135deg, #10b981, #059669); color: white;' ?>">
                                         <span class="material-symbols-rounded" style="font-size: 16px;"><?= $isPriced ? 'edit' : 'add_circle' ?></span>
                                         <?= $isPriced ? 'Sửa giá' : 'Niêm yết giá' ?>
                                     </button>
@@ -465,14 +472,14 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 <!-- =========================================================
      MODAL 1: CẬP NHẬT GIÁ BÁN TỪNG CÂY ĐÀN (Single Serial)
      ========================================================= -->
-<div id="modalSinglePrice" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+<div id="modalSinglePrice" class="modal-overlay">
     <div class="modal-card" style="max-width: 480px; width: 90%; background: var(--bg-card); border-radius: var(--radius-xl); padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <span class="material-symbols-rounded" style="color: var(--accent);">price_change</span>
                 Niêm Yết Giá Bán
             </h3>
-            <button type="button" onclick="closeModal('modalSinglePrice')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            <button type="button" onclick="closeModal('modalSinglePrice')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
         </div>
 
         <form method="POST" action="quanly_banggia.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . htmlspecialchars($_SERVER['QUERY_STRING']) : '' ?>">
@@ -523,14 +530,14 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 <!-- =========================================================
      MODAL 2: ÁP DỤNG GIÁ ĐỒNG LOẠT THEO MẪU ĐÀN (Bulk Model)
      ========================================================= -->
-<div id="modalBulkPrice" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+<div id="modalBulkPrice" class="modal-overlay">
     <div class="modal-card" style="max-width: 500px; width: 90%; background: var(--bg-card); border-radius: var(--radius-xl); padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <span class="material-symbols-rounded" style="color: var(--accent-secondary);">style</span>
                 Niêm Yết Giá Đồng Loạt Theo Mẫu
             </h3>
-            <button type="button" onclick="closeModal('modalBulkPrice')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            <button type="button" onclick="closeModal('modalBulkPrice')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
         </div>
 
         <form method="POST" action="quanly_banggia.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . htmlspecialchars($_SERVER['QUERY_STRING']) : '' ?>">
@@ -579,14 +586,14 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 <!-- =========================================================
      MODAL 3: TỰ ĐỘNG TÍNH GIÁ THEO TỶ SUẤT % LỢI NHUẬN
      ========================================================= -->
-<div id="modalMarginPrice" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+<div id="modalMarginPrice" class="modal-overlay">
     <div class="modal-card" style="max-width: 500px; width: 90%; background: var(--bg-card); border-radius: var(--radius-xl); padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                 <span class="material-symbols-rounded" style="color: #10b981;">percent</span>
                 Tự Động Tính Giá Theo % Lợi Nhuận
             </h3>
-            <button type="button" onclick="closeModal('modalMarginPrice')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            <button type="button" onclick="closeModal('modalMarginPrice')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
         </div>
 
         <form method="POST" action="quanly_banggia.php<?= !empty($_SERVER['QUERY_STRING']) ? '?' . htmlspecialchars($_SERVER['QUERY_STRING']) : '' ?>" onsubmit="return confirm('Bạn có chắc chắn muốn áp dụng công thức tự động định giá cho toàn kho không?');">
@@ -616,7 +623,7 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button type="button" class="btn" onclick="closeModal('modalMarginPrice')" style="padding: 10px 18px;">Hủy</button>
-                <button type="submit" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px 22px; font-weight: 700; border: none;">
+                <button type="submit" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px 22px; font-weight: 700; border: none; cursor: pointer;">
                     Tính & Lưu giá tự động
                 </button>
             </div>
@@ -627,7 +634,13 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 <script>
 let currentGiaNhap = 0;
 
-function openSinglePriceModal(maSerial, tenMau, soSerial, giaNhap, giaBan) {
+function openSinglePriceModal(btn) {
+    const maSerial = btn.getAttribute('data-maserial');
+    const tenMau = btn.getAttribute('data-tenmau');
+    const soSerial = btn.getAttribute('data-soserial');
+    const giaNhap = parseFloat(btn.getAttribute('data-gianhap')) || 0;
+    const giaBan = parseFloat(btn.getAttribute('data-giaban')) || 0;
+
     document.getElementById('single_maSerial').value = maSerial;
     document.getElementById('single_tenMau').textContent = tenMau;
     document.getElementById('single_soSerial').textContent = soSerial;
@@ -636,7 +649,11 @@ function openSinglePriceModal(maSerial, tenMau, soSerial, giaNhap, giaBan) {
     currentGiaNhap = giaNhap;
     calcSingleProfit();
 
-    document.getElementById('modalSinglePrice').style.display = 'flex';
+    const modal = document.getElementById('modalSinglePrice');
+    if (modal) {
+        modal.classList.add('active');
+        document.getElementById('single_giaBan').focus();
+    }
 }
 
 function calcSingleProfit() {
@@ -661,23 +678,26 @@ function applySingleMargin(pct) {
 }
 
 function openBulkModal() {
-    document.getElementById('modalBulkPrice').style.display = 'flex';
+    const modal = document.getElementById('modalBulkPrice');
+    if (modal) modal.classList.add('active');
 }
 
 function openMarginModal() {
-    document.getElementById('modalMarginPrice').style.display = 'flex';
+    const modal = document.getElementById('modalMarginPrice');
+    if (modal) modal.classList.add('active');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('active');
 }
 
 // Đóng modal khi click ra ngoài overlay
-window.onclick = function(event) {
+window.addEventListener('click', function(event) {
     if (event.target.classList.contains('modal-overlay')) {
-        event.target.style.display = 'none';
+        event.target.classList.remove('active');
     }
-}
+});
 </script>
 
 <?php include 'includes/footer.php'; ?>
