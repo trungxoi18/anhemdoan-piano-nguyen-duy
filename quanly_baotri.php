@@ -95,9 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
                 elseif ($action == 'complete') {
                     $conn->query("UPDATE phieubaotri SET trangThai = 'Hoàn thành', ngayCapNhat = NOW() WHERE maPhieuBT = $maPhieuBT");
-                    // Khi hoàn thành, đàn thường được trả lại cho khách
+                    // Khi hoàn thành, trả đàn cho khách hàng -> cập nhật trạng thái 'Đã bán'
+                    $conn->query("UPDATE danserial SET trangThai = 'Đã bán' WHERE maSerial = $maSerial");
                     writeLog($conn, 'HOÀN THÀNH BẢO TRÍ', "Đã hoàn thành phiếu bảo trì #$maPhieuBT");
-                    $msg = "<div class='alert alert-success'>Đã đánh dấu hoàn thành Phiếu Bảo Trì #$maPhieuBT.</div>";
+                    $msg = "<div class='alert alert-success'>Đã đánh dấu hoàn thành Phiếu Bảo Trì #$maPhieuBT. Trạng thái đàn đã được cập nhật thành 'Đã bán'.</div>";
                 }
                 
                 $conn->commit();

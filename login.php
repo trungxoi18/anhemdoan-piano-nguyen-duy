@@ -8,7 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $pass = $_POST['password'];
 
     // Truy vấn kết hợp bảng TaiKhoan và NhanVien
-    $sql = "SELECT tk.MaTaiKhoan, nv.HoTen, tk.MaVaiTro 
+    $sql = "SELECT tk.MaTaiKhoan, tk.TenDangNhap, nv.HoTen, tk.MaVaiTro 
             FROM TaiKhoan tk
             JOIN NhanVien nv ON tk.MaNhanVien = nv.MaNhanVien
             WHERE tk.TenDangNhap = ? AND tk.MatKhau = ? AND tk.TrangThai = 'Hoạt động'";
@@ -25,6 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Lưu thông tin vào Session
         $_SESSION['user_id'] = $row['MaTaiKhoan'];
+        $_SESSION['username'] = $row['TenDangNhap'];
         $_SESSION['fullname'] = $row['HoTen'];
         $_SESSION['role_id'] = $row['MaVaiTro'];
 

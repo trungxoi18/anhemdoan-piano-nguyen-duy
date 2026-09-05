@@ -6,7 +6,7 @@ require_once 'db.php';
 require_once 'functions.php';
 
 // Kiểm tra quyền (Chỉ Admin và Thủ kho)
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }
@@ -195,17 +195,17 @@ $history_result = $conn->query($sql_history);
             <div class="welcome-banner-import">
                 <div class="banner-content">
                     <div class="banner-left">
-                        <h1>📦 Lập Phiếu Nhập Kho</h1>
-                        <p>Nhân viên thực hiện: <b><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b> · <?php echo date('d/m/Y H:i'); ?></p>
+                        <h1>📦 <?php echo __('import_ticket'); ?></h1>
+                        <p><?php echo __('staff_performing'); ?>: <b><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b> · <?php echo date('d/m/Y H:i'); ?></p>
                     </div>
                     <div class="banner-stats">
                         <div class="stat-pill">
                             <span class="material-symbols-rounded">today</span>
-                            Hôm nay: <strong><?php echo $today_count; ?> phiếu</strong>
+                            <?php echo __('today_slips'); ?>: <strong><?php echo $today_count; ?> <?php echo __('slips_count'); ?></strong>
                         </div>
                         <div class="stat-pill">
                             <span class="material-symbols-rounded">inventory_2</span>
-                            Tồn kho: <strong><?php echo number_format($total_stock, 0, ',', '.'); ?></strong>
+                            <?php echo __('stock_count'); ?>: <strong><?php echo number_format($total_stock, 0, ',', '.'); ?></strong>
                         </div>
                     </div>
                 </div>
@@ -215,10 +215,10 @@ $history_result = $conn->query($sql_history);
 
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="switchTab('new')">
-                    <span class="material-symbols-rounded">add_circle</span> Lập phiếu mới
+                    <span class="material-symbols-rounded">add_circle</span> <?php echo __('create_new_slip'); ?>
                 </div>
                 <div class="nav-tab" onclick="switchTab('history')">
-                    <span class="material-symbols-rounded">history</span> Lịch sử lập phiếu
+                    <span class="material-symbols-rounded">history</span> <?php echo __('slip_history'); ?>
                 </div>
             </div>
 
@@ -227,19 +227,19 @@ $history_result = $conn->query($sql_history);
                 <!-- STEP INDICATOR -->
             <div class="step-indicator">
                 <div class="step-item active" id="step-1">
-                    <span class="step-num">1</span> Thông tin chứng từ
+                    <span class="step-num">1</span> <?php echo __('doc_info'); ?>
                 </div>
                 <div class="step-divider">
                     <span class="material-symbols-rounded" style="font-size: 18px;">chevron_right</span>
                 </div>
                 <div class="step-item" id="step-2">
-                    <span class="step-num">2</span> Chi tiết sản phẩm
+                    <span class="step-num">2</span> <?php echo __('product_details'); ?>
                 </div>
                 <div class="step-divider">
                     <span class="material-symbols-rounded" style="font-size: 18px;">chevron_right</span>
                 </div>
                 <div class="step-item" id="step-3">
-                    <span class="step-num">3</span> Xác nhận nhập kho
+                    <span class="step-num">3</span> <?php echo __('confirm_import'); ?>
                 </div>
             </div>
 
@@ -249,14 +249,14 @@ $history_result = $conn->query($sql_history);
                 <div class="form-card" id="card-info">
                     <div class="card-title">
                         <span class="material-symbols-rounded">description</span> 
-                        Thông tin chứng từ nhập
+                        <?php echo __('doc_info'); ?>
                         <span class="card-subtitle">Điền đầy đủ thông tin bắt buộc (*)</span>
                     </div>
                     <div class="input-grid">
                         <div class="form-group">
                             <label>
                                 <span class="material-symbols-rounded">business</span>
-                                Nhà cung cấp <span class="label-required">*</span>
+                                <?php echo __('provider'); ?> <span class="label-required">*</span>
                             </label>
                             <select name="maNCC" id="maNCC" class="custom-input" required onchange="updateSteps()">
                                 <option value="">-- Chọn nhà cung cấp --</option>
@@ -283,21 +283,21 @@ $history_result = $conn->query($sql_history);
                         <div class="form-group">
                             <label>
                                 <span class="material-symbols-rounded">person</span>
-                                Họ tên người giao
+                                <?php echo __('deliverer_name'); ?>
                             </label>
-                            <input type="text" name="nguoiGiaoHang" class="custom-input" placeholder="Tên người giao hàng...">
+                            <input type="text" name="nguoiGiaoHang" class="custom-input" placeholder="...">
                         </div>
                         <div class="form-group">
                             <label>
                                 <span class="material-symbols-rounded">receipt</span>
-                                Theo chứng từ số
+                                <?php echo __('doc_number'); ?>
                             </label>
-                            <input type="text" name="soHoaDonNCC" class="custom-input" placeholder="Số chứng từ gốc/Hóa đơn...">
+                            <input type="text" name="soHoaDonNCC" class="custom-input" placeholder="...">
                         </div>
                         <div class="form-group">
                             <label>
                                 <span class="material-symbols-rounded">calendar_today</span>
-                                Ngày chứng từ
+                                <?php echo __('doc_date'); ?>
                             </label>
                             <input type="date" name="ngayHoaDon" class="custom-input">
                         </div>
@@ -306,7 +306,7 @@ $history_result = $conn->query($sql_history);
                         <div class="form-group">
                             <label>
                                 <span class="material-symbols-rounded">sticky_note_2</span>
-                                Lý do nhập kho
+                                <?php echo __('import_reason'); ?>
                             </label>
                             <input type="text" name="ghiChu" id="ghiChu" class="custom-input" placeholder="Lý do nhập kho..." onchange="updateSteps()">
                         </div>
@@ -317,7 +317,7 @@ $history_result = $conn->query($sql_history);
                 <div class="form-card" id="card-products">
                     <div class="card-title">
                         <span class="material-symbols-rounded">piano</span> 
-                        Chi tiết đàn nhập kho
+                        <?php echo __('import_details_title'); ?>
                         <span class="card-subtitle" id="productCount">0 sản phẩm</span>
                     </div>
                     
@@ -406,7 +406,7 @@ $history_result = $conn->query($sql_history);
                             <span class="material-symbols-rounded">arrow_back</span> Quay lại
                         </a>
                         <button type="submit" name="btnLuuPhieuNhap" class="btn-action btn-submit" id="btnSubmit">
-                            <span class="material-symbols-rounded">done_all</span> XÁC NHẬN NHẬP KHO
+                            <span class="material-symbols-rounded">done_all</span> <?php echo mb_strtoupper(__('confirm_import'), 'UTF-8'); ?>
                         </button>
                     </div>
                 </div>
@@ -418,7 +418,7 @@ $history_result = $conn->query($sql_history);
                 <div class="form-card">
                     <div class="card-title">
                         <span class="material-symbols-rounded">history</span> 
-                        Lịch sử lập phiếu nhập
+                        <?php echo __('slip_history'); ?>
                     </div>
                     <?php if ($history_result && $history_result->num_rows > 0): ?>
                     <table class="history-table">

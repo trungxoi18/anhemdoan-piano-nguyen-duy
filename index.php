@@ -7,6 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $fullname = $_SESSION['fullname'];
 $role_id = $_SESSION['role_id'];
 
@@ -72,6 +73,167 @@ $res_dh = $conn->query($sql_dh);
 if($res_dh && $row = $res_dh->fetch_assoc()) { 
     $don_dang_xu_ly = $row['total'] ?? 0; 
 }
+
+// 6. Badges cho Quick Access
+$badge_duyet_phieu = $yeu_cau_cho;
+$badge_hoadon_cho = 0;
+$sql_hd_cho = "SELECT COUNT(*) as total FROM HoaDon WHERE trangThai = 'Chờ giao'";
+$res_hd_cho = $conn->query($sql_hd_cho);
+if($res_hd_cho && $row = $res_hd_cho->fetch_assoc()) { 
+    $badge_hoadon_cho = $row['total'] ?? 0; 
+}
+
+// 7. Dữ liệu Biểu đồ Đa chiều Dashboard (Multi-dimensional Analytics)
+// 7.1. Doanh thu 6 tháng gần nhất
+$chart_rev_labels = [];
+$chart_rev_data = [];
+$chart_order_counts = [];
+$monthly_stats = [];
+
+for ($i = 5; $i >= 0; $i--) {
+    $time = strtotime("-$i months");
+    $m = date('n', $time);
+    $y = date('Y', $time);
+    $key = "$y-$m";
+    $label = "Tháng $m/$y";
+    $chart_rev_labels[] = $label;
+    $monthly_stats[$key] = [
+        'label' => $label,
+        'revenue' => 0,
+        'orders' => 0
+    ];
+}
+
+$sql_rev_6m = "SELECT MONTH(ngayLap) as m, YEAR(ngayLap) as y, SUM(tongTien) as total_rev, COUNT(maHoaDon) as total_count 
+               FROM hoadon 
+               WHERE trangThai != 'Đã hủy' AND ngayLap >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+               GROUP BY y, m";
+$res_rev_6m = $conn->query($sql_rev_6m);
+if ($res_rev_6m) {
+    while ($r = $res_rev_6m->fetch_assoc()) {
+        $key = "{$r['y']}-{$r['m']}";
+        if (isset($monthly_stats[$key])) {
+            $monthly_stats[$key]['revenue'] = (float)$r['total_rev'];
+            $monthly_stats[$key]['orders'] = (int)$r['total_count'];
+        }
+    }
+}
+
+$total_rev_sum = 0;
+$max_rev_month = '';
+$max_rev_val = 0;
+foreach ($monthly_stats as $st) {
+    $chart_rev_data[] = $st['revenue'];
+    $chart_order_counts[] = $st['orders'];
+    $total_rev_sum += $st['revenue'];
+    if ($st['revenue'] > $max_rev_val) {
+        $max_rev_val = $st['revenue'];
+        $max_rev_month = $st['label'];
+    }
+}
+
+// Fallback nếu 6 tháng từ NOW() trống, tự động lấy 6 mốc thời gian có dữ liệu trong CSDL
+if ($total_rev_sum == 0) {
+    $chart_rev_labels = [];
+    $chart_rev_data = [];
+    $chart_order_counts = [];
+    $sql_fb = "SELECT DATE_FORMAT(ngayLap, 'Tháng %m/%Y') as lbl, SUM(tongTien) as total_rev, COUNT(maHoaDon) as total_count, MAX(ngayLap) as max_date
+               FROM hoadon 
+               WHERE trangThai != 'Đã hủy'
+               GROUP BY DATE_FORMAT(ngayLap, '%Y-%m')
+               ORDER BY max_date ASC
+               LIMIT 6";
+    $res_fb = $conn->query($sql_fb);
+    if ($res_fb && $res_fb->num_rows > 0) {
+        while ($rf = $res_fb->fetch_assoc()) {
+            $chart_rev_labels[] = $rf['lbl'];
+            $chart_rev_data[] = (float)$rf['total_rev'];
+            $chart_order_counts[] = (int)$rf['total_count'];
+            $total_rev_sum += (float)$rf['total_rev'];
+            if ((float)$rf['total_rev'] > $max_rev_val) {
+                $max_rev_val = (float)$rf['total_rev'];
+                $max_rev_month = $rf['lbl'];
+            }
+        }
+    }
+}
+
+// 7.2. Tỷ trọng Tồn kho theo Hãng sản xuất
+$chart_brand_labels = [];
+$chart_brand_data = [];
+$chart_brand_colors = ['#6366f1', '#f59e0b', '#ec4899', '#10b981', '#06b6d4', '#8b5cf6', '#f97316', '#64748b'];
+$brand_stock_list = [];
+
+$res_brands = $conn->query("SELECT hd.tenHang, COUNT(ds.maSerial) as total_stock 
+                            FROM danserial ds 
+                            JOIN maudan md ON ds.maMau = md.maMau 
+                            JOIN hangdan hd ON md.maHang = hd.maHang 
+                            WHERE ds.trangThai LIKE '%Trong kho%' 
+                            GROUP BY hd.tenHang 
+                            ORDER BY total_stock DESC 
+                            LIMIT 8");
+if ($res_brands) {
+    while ($rb = $res_brands->fetch_assoc()) {
+        $chart_brand_labels[] = $rb['tenHang'];
+        $chart_brand_data[] = (int)$rb['total_stock'];
+        $brand_stock_list[] = [
+            'name' => $rb['tenHang'],
+            'stock' => (int)$rb['total_stock']
+        ];
+    }
+}
+
+// 7.3. Top 5 Mẫu đàn bán chạy nhất
+$chart_top_labels = [];
+$chart_top_sold = [];
+$chart_top_revenue = [];
+$res_top = $conn->query("SELECT md.tenMau, hd.tenHang, COUNT(ct.maSerial) as total_sold, SUM(ds.giaBan) as total_revenue
+                         FROM chitiethoadon ct
+                         JOIN danserial ds ON ct.maSerial = ds.maSerial
+                         JOIN maudan md ON ds.maMau = md.maMau
+                         JOIN hangdan hd ON md.maHang = hd.maHang
+                         JOIN hoadon h ON ct.maHoaDon = h.maHoaDon
+                         WHERE h.trangThai != 'Đã hủy'
+                         GROUP BY md.maMau
+                         ORDER BY total_sold DESC, total_revenue DESC
+                         LIMIT 5");
+if ($res_top) {
+    while ($rt = $res_top->fetch_assoc()) {
+        $chart_top_labels[] = $rt['tenMau'];
+        $chart_top_sold[] = (int)$rt['total_sold'];
+        $chart_top_revenue[] = (float)($rt['total_revenue'] ?? 0);
+    }
+}
+
+// 8. Widget Việc Cần Làm (Lists)
+// Cho Admin: Phiếu chờ duyệt
+$list_cho_duyet = [];
+if ($role_id == 1) {
+    $res_cd = $conn->query("(SELECT 'Hóa đơn' as loai, maHoaDon as id, ngayLap as thoiGian FROM hoadon WHERE trangThai = 'Chờ duyệt')
+                            UNION ALL
+                            (SELECT 'Phiếu xuất' as loai, maPhieuXuat as id, ngayXuat as thoiGian FROM phieuxuat WHERE trangThai = 'Chờ duyệt')
+                            UNION ALL
+                            (SELECT 'Phiếu nhập' as loai, maPhieuNhap as id, ngayNhap as thoiGian FROM phieunhap WHERE trangThai = 'Chờ duyệt')
+                            ORDER BY thoiGian DESC LIMIT 5");
+    if ($res_cd) while ($r = $res_cd->fetch_assoc()) $list_cho_duyet[] = $r;
+}
+// Cho Thủ kho: Hóa đơn chờ giao
+$list_hoadon_cho = [];
+$res_hc = $conn->query("SELECT maHoaDon, ngayLap, tongTien FROM hoadon WHERE trangThai = 'Chờ giao' ORDER BY ngayLap ASC LIMIT 5");
+if ($res_hc) while ($r = $res_hc->fetch_assoc()) $list_hoadon_cho[] = $r;
+
+// 9. Nhật ký hoạt động gần đây (Admin xem tất cả, Thủ kho chỉ xem của chính mình)
+$recent_logs = [];
+$sql_logs = "SELECT n.loaiHanhDong, n.chiTiet, n.ngayTao, nv.hoTen 
+             FROM nhatkyhethong n 
+             JOIN taikhoan t ON n.maTaiKhoan = t.maTaiKhoan 
+             JOIN nhanvien nv ON t.maNhanVien = nv.maNhanVien ";
+if ($role_id != 1) {
+    $sql_logs .= " WHERE n.maTaiKhoan = " . intval($user_id) . " ";
+}
+$sql_logs .= " ORDER BY n.ngayTao DESC LIMIT 8";
+$res_logs = $conn->query($sql_logs);
+if ($res_logs) while ($r = $res_logs->fetch_assoc()) $recent_logs[] = $r;
 
 // Fetch Featured Products (4 newest)
 $featured_products = [];
@@ -204,8 +366,441 @@ if ($res_policies) {
             <?php } ?>
         </div>
 
-        <!-- 3. Featured Products (Premium UI) -->
-        <div class="section-title-premium">
+        <!-- 3. Real Dashboard (Widgets + Chart + Timeline) -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 32px;">
+            
+            <!-- Cột trái: Chart & Widgets -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Widgets Việc cần làm -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <?php if ($role_id == 1): ?>
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(139,92,246,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--accent-secondary, #8b5cf6); font-weight: 600;">
+                            <span class="material-symbols-rounded">fact_check</span> Chứng từ chờ duyệt
+                        </div>
+                        <?php if (count($list_cho_duyet) == 0): ?>
+                            <div style="font-size: 14px; color: var(--text-muted);">Không có chứng từ nào chờ duyệt.</div>
+                        <?php else: ?>
+                            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <?php foreach($list_cho_duyet as $cd): ?>
+                                    <li style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                                        <span style="color: var(--text-secondary);"><?= $cd['loai'] ?> #<?= $cd['id'] ?></span>
+                                        <a href="duyet_phieu.php" style="color: #ef4444; font-weight: 600; text-decoration: none; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px;">Duyệt</a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($role_id == 2): ?>
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(239,68,68,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #ef4444; font-weight: 600;">
+                            <span class="material-symbols-rounded">local_shipping</span> Hóa đơn chờ xuất kho
+                        </div>
+                        <?php if (count($list_hoadon_cho) == 0): ?>
+                            <div style="font-size: 14px; color: var(--text-muted);">Tất cả hóa đơn đã xuất.</div>
+                        <?php else: ?>
+                            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                <?php foreach($list_hoadon_cho as $hc): ?>
+                                    <li style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                                        <span style="color: var(--text-secondary);">HĐ #<?= $hc['maHoaDon'] ?></span>
+                                        <a href="phieuxuat.php" style="color: #ef4444; font-weight: 600; text-decoration: none; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px;">Xuất ngay</a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(245,158,11,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #f59e0b; font-weight: 600;">
+                            <span class="material-symbols-rounded">warning</span> Sản phẩm sắp hết
+                        </div>
+                        <div style="font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px;"><?= $sap_het ?> <span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">màu đàn ≤ 5 cây</span></div>
+                        <a href="tonkho_hientai.php" style="color: #f59e0b; font-size: 14px; text-decoration: none; font-weight: 500;">Xem chi tiết &rarr;</a>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ phân tích kinh doanh & tồn kho -->
+                <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-rounded" style="color: #6366f1;">analytics</span> Phân Tích Hoạt Động Kinh Doanh
+                            </h3>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">Tổng quan xu hướng doanh thu và cơ cấu sản phẩm</p>
+                        </div>
+                        
+                        <!-- Tab Selector -->
+                        <div style="display: flex; gap: 4px; background: var(--bg-tertiary, #f1f5f9); padding: 4px; border-radius: 10px;">
+                            <button type="button" class="chart-tab-btn active" onclick="switchChartTab('revenue')" id="tab-btn-revenue" style="border: none; background: #fff; color: #6366f1; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s;">
+                                <span class="material-symbols-rounded" style="font-size: 16px;">bar_chart</span> Doanh thu 6 tháng
+                            </button>
+                            <button type="button" class="chart-tab-btn" onclick="switchChartTab('brand')" id="tab-btn-brand" style="border: none; background: transparent; color: var(--text-secondary); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                                <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">pie_chart</span> Cơ cấu Hãng
+                            </button>
+                            <button type="button" class="chart-tab-btn" onclick="switchChartTab('top')" id="tab-btn-top" style="border: none; background: transparent; color: var(--text-secondary); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                                <span class="material-symbols-rounded" style="font-size: 16px; color: #f59e0b;">leaderboard</span> Top bán chạy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- View 1: Doanh thu 6 tháng (Bar Chart + Line Chart Combo) -->
+                    <div id="view-revenue" class="chart-view-panel">
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 130px; background: rgba(99, 102, 241, 0.06); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(99, 102, 241, 0.15);">
+                                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Tổng DT 6 tháng</div>
+                                <div style="font-size: 16px; font-weight: 700; color: #6366f1; margin-top: 2px;"><?= number_format($total_rev_sum, 0, ',', '.') ?> đ</div>
+                            </div>
+                            <div style="flex: 1; min-width: 130px; background: rgba(16, 185, 129, 0.06); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(16, 185, 129, 0.15);">
+                                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Tháng đạt đỉnh</div>
+                                <div style="font-size: 16px; font-weight: 700; color: #10b981; margin-top: 2px;"><?= !empty($max_rev_month) ? $max_rev_month : 'Chưa có' ?></div>
+                            </div>
+                            <div style="flex: 1; min-width: 130px; background: rgba(245, 158, 11, 0.06); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(245, 158, 11, 0.15);">
+                                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Tổng đơn hàng</div>
+                                <div style="font-size: 16px; font-weight: 700; color: #f59e0b; margin-top: 2px;"><?= array_sum($chart_order_counts) ?> đơn</div>
+                            </div>
+                        </div>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="revenueMonthlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- View 2: Cơ cấu theo Hãng (Doughnut + Breakdown List) -->
+                    <div id="view-brand" class="chart-view-panel" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; min-height: 350px;">
+                            <div style="position: relative; height: 280px;">
+                                <canvas id="brandDoughnutChart"></canvas>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 6px;">
+                                <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">
+                                    Tồn kho theo Hãng (Tổng: <?= $tong_dan ?> cây)
+                                </div>
+                                <?php 
+                                $color_idx = 0;
+                                foreach($brand_stock_list as $bs): 
+                                    $color = $chart_brand_colors[$color_idx % count($chart_brand_colors)];
+                                    $pct = $tong_dan > 0 ? round(($bs['stock'] / $tong_dan) * 100, 1) : 0;
+                                    $color_idx++;
+                                ?>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span style="width: 10px; height: 10px; border-radius: 50%; background: <?= $color ?>; display: inline-block;"></span>
+                                            <span style="font-weight: 600; color: var(--text-primary);"><?= htmlspecialchars($bs['name']) ?></span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <span style="color: var(--text-muted); font-size: 12px;"><?= $pct ?>%</span>
+                                            <strong style="color: var(--text-primary); min-width: 45px; text-align: right;"><?= $bs['stock'] ?> cây</strong>
+                                        </div>
+                                    </div>
+                                    <div style="width: 100%; height: 6px; background: var(--bg-tertiary, #f1f5f9); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: <?= $pct ?>%; height: 100%; background: <?= $color ?>; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- View 3: Top 5 Bán Chạy -->
+                    <div id="view-top" class="chart-view-panel" style="display: none;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">
+                            Xếp hạng 5 mẫu đàn bán chạy nhất
+                        </div>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="topSellingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Timeline -->
+            <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h3 style="margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <span class="material-symbols-rounded" style="color: #10b981;">history</span> Hoạt động gần đây
+                        </h3>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);"><?= ($role_id == 1) ? 'Nhật ký toàn hệ thống' : 'Nhật ký cá nhân của bạn' ?></p>
+                    </div>
+                    <a href="lichsu_hoatdong.php" style="font-size: 12px; color: var(--accent, #0ea5e9); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 2px;">
+                        Xem tất cả <span class="material-symbols-rounded" style="font-size: 14px;">arrow_forward</span>
+                    </a>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 20px; position: relative;">
+                    <!-- Line doc -->
+                    <div style="position: absolute; left: 15px; top: 10px; bottom: 10px; width: 2px; background: var(--border, #e2e8f0); z-index: 0;"></div>
+                    
+                    <?php if(count($recent_logs) > 0): ?>
+                        <?php foreach($recent_logs as $log): ?>
+                            <div style="display: flex; gap: 16px; position: relative; z-index: 1;">
+                                <div style="width: 32px; height: 32px; border-radius: 50%; background: #fff; border: 2px solid #3b82f6; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px var(--bg-card);">
+                                    <span class="material-symbols-rounded" style="font-size: 16px; color: #3b82f6;">check</span>
+                                </div>
+                                <div style="flex-grow: 1; padding-top: 6px;">
+                                    <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                        <?= htmlspecialchars($log['hoTen']) ?> <span style="font-weight: 400; color: var(--text-secondary);">- <?= htmlspecialchars($log['loaiHanhDong']) ?></span>
+                                    </div>
+                                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+                                        <?= htmlspecialchars($log['chiTiet']) ?>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">
+                                        <?= date('H:i d/m', strtotime($log['ngayTao'])) ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div style="padding-left: 48px; font-size: 14px; color: var(--text-muted);">Chưa có hoạt động nào gần đây.</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let chartRevenueInstance = null;
+        let chartBrandInstance = null;
+        let chartTopInstance = null;
+
+        function switchChartTab(tab) {
+            // Hide all view panels
+            document.querySelectorAll('.chart-view-panel').forEach(el => el.style.display = 'none');
+            // Reset tab button styles
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.boxShadow = 'none';
+                btn.classList.remove('active');
+            });
+
+            const activeBtn = document.getElementById('tab-btn-' + tab);
+            const activeView = document.getElementById('view-' + tab);
+            if (activeBtn) {
+                activeBtn.style.background = '#fff';
+                activeBtn.style.color = (tab === 'revenue' ? '#6366f1' : (tab === 'brand' ? '#10b981' : '#f59e0b'));
+                activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                activeBtn.classList.add('active');
+            }
+            if (activeView) {
+                activeView.style.display = 'block';
+            }
+
+            if (tab === 'revenue' && chartRevenueInstance) chartRevenueInstance.resize();
+            if (tab === 'brand' && chartBrandInstance) chartBrandInstance.resize();
+            if (tab === 'top' && chartTopInstance) chartTopInstance.resize();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Chart Doanh Thu 6 Tháng (Bar + Line Combo)
+            const ctxRev = document.getElementById('revenueMonthlyChart');
+            if (ctxRev) {
+                chartRevenueInstance = new Chart(ctxRev.getContext('2d'), {
+                    data: {
+                        labels: <?= json_encode($chart_rev_labels) ?>,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Doanh thu (VNĐ)',
+                                data: <?= json_encode($chart_rev_data) ?>,
+                                backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                                borderColor: '#6366f1',
+                                borderWidth: 1.5,
+                                borderRadius: 8,
+                                hoverBackgroundColor: '#4f46e5',
+                                yAxisID: 'y',
+                                order: 2
+                            },
+                            {
+                                type: 'line',
+                                label: 'Số đơn hàng',
+                                data: <?= json_encode($chart_order_counts) ?>,
+                                borderColor: '#f59e0b',
+                                backgroundColor: '#f59e0b',
+                                borderWidth: 3,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#f59e0b',
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                tension: 0.35,
+                                yAxisID: 'y1',
+                                order: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    font: { family: 'Inter', size: 12, weight: '600' }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 13, weight: '700' },
+                                bodyFont: { family: 'Inter', size: 12 },
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataset.yAxisID === 'y') {
+                                            return ' Doanh thu: ' + new Intl.NumberFormat('vi-VN').format(context.raw) + ' đ';
+                                        } else {
+                                            return ' Đơn hàng: ' + context.raw + ' đơn';
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                beginAtZero: true,
+                                grid: { borderDash: [4, 4], color: 'rgba(226, 232, 240, 0.6)' },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000000) return (value / 1000000000).toFixed(1) + ' Tỷ';
+                                        if (value >= 1000000) return (value / 1000000).toFixed(0) + ' Tr';
+                                        return value;
+                                    },
+                                    font: { family: 'Inter', size: 11 }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                beginAtZero: true,
+                                grid: { drawOnChartArea: false },
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) { return value + ' đơn'; },
+                                    font: { family: 'Inter', size: 11 }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', size: 12, weight: '500' } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Chart Cơ cấu Hãng (Doughnut)
+            const ctxBrand = document.getElementById('brandDoughnutChart');
+            if (ctxBrand) {
+                chartBrandInstance = new Chart(ctxBrand.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: <?= json_encode($chart_brand_labels) ?>,
+                        datasets: [{
+                            data: <?= json_encode($chart_brand_data) ?>,
+                            backgroundColor: <?= json_encode(array_slice($chart_brand_colors, 0, count($chart_brand_labels))) ?>,
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const val = context.raw;
+                                        const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                        return ' ' + context.label + ': ' + val + ' cây (' + pct + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 3. Chart Top Bán Chạy (Horizontal Bar Chart)
+            const ctxTop = document.getElementById('topSellingChart');
+            if (ctxTop) {
+                chartTopInstance = new Chart(ctxTop.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: <?= json_encode($chart_top_labels) ?>,
+                        datasets: [{
+                            axis: 'y',
+                            label: 'Số lượng đã bán',
+                            data: <?= json_encode($chart_top_sold) ?>,
+                            backgroundColor: [
+                                'rgba(245, 158, 11, 0.85)',
+                                'rgba(99, 102, 241, 0.85)',
+                                'rgba(16, 185, 129, 0.85)',
+                                'rgba(236, 72, 153, 0.85)',
+                                'rgba(6, 182, 212, 0.85)'
+                            ],
+                            borderRadius: 6,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' Đã bán: ' + context.raw + ' cây';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(v) { return v + ' cây'; }
+                                },
+                                grid: { borderDash: [4, 4] }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', size: 12, weight: '600' } }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        </script>
+
+        <!-- 4. Featured Products (Premium UI) -->
+        <div class="section-title-premium" style="margin-top: 40px;">
             <span class="material-symbols-rounded" style="color: var(--accent, #3b82f6);">star</span> 
             Sản phẩm mới nhập
         </div>
@@ -228,78 +823,6 @@ if ($res_policies) {
             <?php if (count($featured_products) == 0): ?>
                 <p style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1;">Chưa có sản phẩm nào.</p>
             <?php endif; ?>
-        </div>
-
-        <!-- 4. Quick Access Grid (Premium UI) -->
-        <div class="section-title-premium">
-            <span class="material-symbols-rounded" style="color: var(--accent-secondary, #8b5cf6);">bolt</span> 
-            Truy cập nhanh
-        </div>
-        <div class="premium-quick-grid">
-            
-            <?php if ($role_id == 2 || $role_id == 1) {  ?>
-                <a href="hoadon_moi.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">add_shopping_cart</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('new_invoice'); ?></span>
-                </a>
-                <a href="khachhang.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">groups</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('manage_customers'); ?></span>
-                </a>
-                <a href="quanly_baotri.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">build_circle</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('warranty_receive'); ?></span>
-                </a>
-            <?php } ?>
-
-            <?php if ($role_id == 1 || $role_id == 2) { ?>
-                <a href="phieunhap.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">input</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('import_ticket'); ?></span>
-                </a>
-                <a href="phieuxuat.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">output</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('export_ticket'); ?></span>
-                </a>
-                <a href="dieuchuyen.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">local_shipping</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('internal_transfer'); ?></span>
-                </a>
-                <a href="baocao_nhapxuatton.php" class="premium-quick-card staff">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">summarize</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('import_export_report'); ?></span>
-                </a>
-            <?php } ?>
-
-            <?php if ($role_id == 1) { ?>
-                <a href="quanly_hanghoa.php" class="premium-quick-card admin">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">piano</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('manage_goods'); ?></span>
-                </a>
-                <a href="duyet_phieu.php" class="premium-quick-card admin">
-                    <div class="premium-quick-icon-wrapper">
-                        <span class="material-symbols-rounded">fact_check</span>
-                    </div>
-                    <span class="premium-quick-label"><?php echo __('approve_tickets'); ?></span>
-                </a>
-            <?php } ?>
-
         </div>
 
         <!-- 5. Active Promotions -->

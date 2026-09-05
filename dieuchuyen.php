@@ -6,7 +6,7 @@ require_once 'db.php';
 require_once 'functions.php';
 
 // Kiểm tra quyền (Admin và Thủ kho)
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }
@@ -37,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuDC'])) {
                 $serial = trim($serial);
                 if(empty($serial)) continue;
                 
-                $st_check = $conn->prepare("SELECT maSerial, trangThai FROM danserial WHERE soSerial = ? AND maKho = ?");
+                // Khóa dòng (Row-level lock) Serial này để tránh đụng độ
+                $st_check = $conn->prepare("SELECT maSerial, trangThai FROM danserial WHERE soSerial = ? AND maKho = ? FOR UPDATE");
                 $st_check->bind_param("si", $serial, $maKhoXuat);
                 $st_check->execute();
                 $res = $st_check->get_result();
@@ -46,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['btnLuuPhieuDC'])) {
                 
                 $row = $res->fetch_assoc();
                 $maSerial = $row['maSerial'];
-                if ($row['trangThai'] != 'Trong kho') {
+                // Validate State Machine khắt khe sau khi đã lock
+                if ($row['trangThai'] !== 'Trong kho') {
                     throw new Exception("Mã Serial [$serial] đang ở trạng thái '".$row['trangThai']."', không thể điều chuyển!");
                 }
                 

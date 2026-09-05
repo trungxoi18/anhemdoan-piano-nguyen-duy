@@ -22,9 +22,39 @@ if ($thongbao_res) {
     </div>
 
     <div class="topbar-right">
-        <div class="lang-toggle">
-            <a href="?lang=vn" class="lang-btn <?php echo ($_SESSION['lang'] == 'vn') ? 'active' : ''; ?>">VN</a>
-            <a href="?lang=en" class="lang-btn <?php echo ($_SESSION['lang'] == 'en') ? 'active' : ''; ?>">EN</a>
+        <style>
+            .lang-segmented {
+                display: flex;
+                background: var(--bg-tertiary);
+                border-radius: 20px;
+                padding: 4px;
+                border: 1px solid var(--border);
+                align-items: center;
+            }
+            .lang-segmented a {
+                text-decoration: none;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 5px 12px;
+                border-radius: 16px;
+                color: var(--text-secondary);
+                transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+            }
+            .lang-segmented a:hover:not(.active) {
+                color: var(--text-primary);
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .lang-segmented a.active {
+                background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+                color: white;
+                box-shadow: 0 2px 8px rgba(124, 92, 252, 0.35);
+            }
+        </style>
+        <div class="lang-segmented">
+            <a href="?lang=vn" class="<?php echo (!isset($_SESSION['lang']) || $_SESSION['lang'] == 'vn') ? 'active' : ''; ?>">VN</a>
+            <a href="?lang=en" class="<?php echo (isset($_SESSION['lang']) && $_SESSION['lang'] == 'en') ? 'active' : ''; ?>">EN</a>
         </div>
 
         <a href="todo.php" class="action-btn" title="Việc cần làm" style="color: inherit; text-decoration: none;">

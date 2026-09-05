@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'db.php';
 require_once 'functions.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2, 3])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [1, 2])) {
     header("Location: index.php");
     exit();
 }
@@ -165,7 +165,7 @@ foreach ($report as $r) {
 
 // Xử lý Xuất CSV
 if (isset($_GET['export']) && $_GET['export'] == 'csv') {
-    ob_end_clean(); // Clear any existing output
+    if (ob_get_level()) ob_end_clean(); // Clear any existing output safely
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=baocao_nhapxuatton_'.date('Ymd').'.csv');
     // Add BOM for Excel UTF-8 display

@@ -17,6 +17,35 @@ return [
     'menu_profile' => 'Profile',
     'menu_logout' => 'Log Out',
     
+    // Sidebar Additional
+    'section_inventory' => 'Inventory',
+    'menu_invoice_create' => 'Create Invoice',
+    'menu_import_slip' => 'Import Slip',
+    'menu_export_slip' => 'Export Slip',
+    'menu_internal_transfer' => 'Internal Transfer',
+    'menu_inventory_report' => 'Inventory Report',
+    'menu_current_stock' => 'Current Stock',
+    'menu_maintenance' => 'Maintenance',
+    'section_system' => 'System',
+    'menu_account_roles' => 'Account Roles',
+
+    // phieunhap.php
+    'staff_performing' => 'Performed by',
+    'today_slips' => 'Today',
+    'slips_count' => 'slips',
+    'stock_count' => 'In stock',
+    'create_new_slip' => 'Create New Slip',
+    'slip_history' => 'Slip History',
+    'doc_info' => 'Document Info',
+    'product_details' => 'Product Details',
+    'confirm_import' => 'Confirm Import',
+    'provider' => 'PROVIDER',
+    'deliverer_name' => 'DELIVERER NAME',
+    'doc_number' => 'DOCUMENT NUMBER',
+    'doc_date' => 'DOCUMENT DATE',
+    'import_reason' => 'IMPORT REASON',
+    'import_details_title' => 'Imported Pianos Details',
+    
     // Dashboard KPI
     'hello' => 'Welcome,',
     'monthly_revenue' => 'Monthly Revenue',
