@@ -30,6 +30,7 @@
 
         <?php if (isset($_SESSION['role_id']) && $_SESSION['role_id'] == 1): ?>
         <div class="nav-section-title"><?php echo __('section_system'); ?></div>
+        <a href="quanly_banggia.php" class="nav-item"><span class="material-symbols-rounded">sell</span> <?php echo __('menu_price_management'); ?></a>
         <a href="quanly_taikhoan.php" class="nav-item"><span class="material-symbols-rounded">manage_accounts</span> <?php echo __('menu_account_roles'); ?></a>
         <?php endif; ?>
 

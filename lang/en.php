@@ -13,6 +13,7 @@ return [
     'menu_search' => 'Product Search',
     'menu_policy' => 'Warranty Policy',
     'menu_promo' => 'Promotions',
+    'menu_chatbot' => 'AI Assistant',
     'section_personal' => 'Personal',
     'menu_profile' => 'Profile',
     'menu_logout' => 'Log Out',
@@ -27,6 +28,7 @@ return [
     'menu_current_stock' => 'Current Stock',
     'menu_maintenance' => 'Maintenance',
     'section_system' => 'System',
+    'menu_price_management' => 'Price Management',
     'menu_account_roles' => 'Account Roles',
 
     // phieunhap.php

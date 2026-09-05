@@ -14,7 +14,12 @@ if ($thongbao_res) {
 }
 ?>
 <div class="topbar">
-    <div class="topbar-title"><?php echo __('dashboard_title'); ?></div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="btn-sidebar-toggle" class="action-btn" title="Ẩn/Hiện menu" onclick="toggleSidebar()" style="flex-shrink: 0;">
+            <span class="material-symbols-rounded">menu</span>
+        </button>
+        <div class="topbar-title"><?php echo __('dashboard_title'); ?></div>
+    </div>
 
     <div class="global-search">
         <span class="material-symbols-rounded">search</span>

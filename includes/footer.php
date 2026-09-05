@@ -81,7 +81,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    // Sidebar state restoration
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && window.innerWidth > 992) {
+        if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+    }
 });
+
+// Toggle Sidebar function
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar) return;
+
+    if (window.innerWidth <= 992) {
+        sidebar.classList.toggle('mobile-open');
+        if (overlay) overlay.classList.toggle('active');
+    } else {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+    }
+}
 </script>
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<?php include_once __DIR__ . '/../chat_widget.php'; ?>
 </body>
 </html>

@@ -13,6 +13,7 @@ return [
     'menu_search' => 'Tra cứu sản phẩm',
     'menu_policy' => 'Chính sách bảo hành',
     'menu_promo' => 'Chương trình khuyến mãi',
+    'menu_chatbot' => 'Trợ lý AI Kho Đàn',
     'section_personal' => 'Cá nhân',
     'menu_profile' => 'Thông tin cá nhân',
     'menu_logout' => 'Đăng xuất',
@@ -27,6 +28,7 @@ return [
     'menu_current_stock' => 'Tồn kho hiện tại',
     'menu_maintenance' => 'Tiếp nhận Bảo trì',
     'section_system' => 'Hệ thống',
+    'menu_price_management' => 'Quản lý bảng giá',
     'menu_account_roles' => 'Phân quyền tài khoản',
 
     // phieunhap.php

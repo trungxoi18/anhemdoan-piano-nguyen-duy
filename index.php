@@ -367,7 +367,7 @@ if ($res_policies) {
         </div>
 
         <!-- 3. Real Dashboard (Widgets + Chart + Timeline) -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 32px;">
+        <div class="dashboard-main-grid">
             
             <!-- Cột trái: Chart & Widgets -->
             <div style="display: flex; flex-direction: column; gap: 24px;">
@@ -832,7 +832,7 @@ if ($res_policies) {
             <span style="font-size: 18px;">Chương trình khuyến mãi đang diễn ra</span>
             <a href="cs_khuyenmai.php" style="margin-left: auto; font-size: 14px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: 0.2s;">Xem tất cả <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span></a>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px;">
+        <div class="dashboard-cards-grid">
             <?php foreach ($active_promos as $p): ?>
             <div style="background: var(--bg-card); border: 1px solid rgba(244, 114, 182, 0.2); border-radius: var(--radius-xl); padding: 28px; display: flex; flex-direction: column; transition: 0.3s; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                 <div style="position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: linear-gradient(to bottom, #f472b6, #db2777);"></div>
@@ -864,7 +864,7 @@ if ($res_policies) {
             <span style="font-size: 18px;">Chính sách bảo hành</span>
             <a href="cs_baohanh.php" style="margin-left: auto; font-size: 14px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: 0.2s;">Xem tất cả <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span></a>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px;">
+        <div class="dashboard-cards-grid">
             <?php foreach ($recent_policies as $p): ?>
             <div style="background: var(--bg-card); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: var(--radius-xl); padding: 28px; display: flex; flex-direction: column; transition: 0.3s; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                 <div style="position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: linear-gradient(to bottom, #5eead4, #34d399);"></div>
