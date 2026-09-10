@@ -356,7 +356,15 @@ function sendAIMessage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: message })
     })
-    .then(res => res.json())
+    .then(async res => {
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("Non-JSON API response:", text);
+            return { reply: "Phản hồi máy chủ: " + (text.length > 100 ? text.substring(0, 100) + '...' : text) };
+        }
+    })
     .then(data => {
         // Xóa bong bóng loading
         const loadingElem = document.getElementById(loadingId);
@@ -372,7 +380,7 @@ function sendAIMessage() {
         const loadingElem = document.getElementById(loadingId);
         if (loadingElem) loadingElem.remove();
 
-        const errorHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">Lỗi kết nối máy chủ!</div></div>`;
+        const errorHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">Lỗi kết nối mạng hoặc máy chủ.</div></div>`;
         chatBody.insertAdjacentHTML('beforeend', errorHTML);
         scrollToBottom();
     });
