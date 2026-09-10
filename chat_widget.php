@@ -259,6 +259,45 @@
     transition: 0.2s;
 }
 #ai-chat-send:hover { background: #1e3c72; transform: scale(1.05); }
+
+/* RESPONSIVE CHO ĐIỆN THOẠI DI ĐỘNG */
+@media (max-width: 576px) {
+    #ai-chat-toggle {
+        bottom: 16px;
+        right: 16px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        box-shadow: 0 4px 16px rgba(30, 60, 114, 0.4);
+    }
+    #ai-chat-box {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0;
+        z-index: 10000;
+    }
+    .ai-chat-header {
+        padding: 14px 16px;
+    }
+    .ai-chat-body {
+        padding: 12px;
+    }
+    .ai-chat-footer {
+        padding: 10px 12px;
+    }
+    #ai-chat-input {
+        font-size: 16px; /* Ngăn tự zoom trên iOS */
+    }
+}
 </style>
 
 <script>
