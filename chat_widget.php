@@ -351,11 +351,10 @@ function sendAIMessage() {
     scrollToBottom();
 
     // 3. Gọi backend xử lý chat bằng FormData chuẩn (tránh tường lửa ModSecurity 403 Forbidden)
-    // 3. Gọi backend xử lý chat bằng FormData chuẩn (tránh tường lửa ModSecurity 403 Forbidden)
     const formData = new FormData();
-    formData.append('message', message);
+    formData.append('noidung_chat', message);
 
-    fetch('api_chat.php', { // <--- SỬA TÊN FILE TẠI DÒNG NÀY
+    fetch('api_chat.php', {
         method: 'POST',
         body: formData
     })

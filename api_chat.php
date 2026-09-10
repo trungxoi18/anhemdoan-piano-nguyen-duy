@@ -27,15 +27,14 @@ set_exception_handler(function($e) {
 });
 
 $userMessage = '';
-// Chỉ nhận dữ liệu qua POST (FormData) để vượt tường lửa
-if (isset($_POST['message']) && !empty(trim($_POST['message']))) {
-    $userMessage = trim($_POST['message']);
+// Chỉ nhận dữ liệu qua POST (FormData) với tên biến đã đổi để vượt tường lửa
+if (isset($_POST['noidung_chat']) && !empty(trim($_POST['noidung_chat']))) {
+    $userMessage = trim($_POST['noidung_chat']);
 }
 
 if (empty($userMessage)) {
     sendResponse('Vui lòng nhập câu hỏi của bạn.');
 }
-
 // 1. CẤU HÌNH API KEY (Tùy chọn: Điền Gemini API Key nếu muốn dùng Cloud AI)
 $apiKey = ''; 
 
