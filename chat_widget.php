@@ -350,11 +350,13 @@ function sendAIMessage() {
     chatBody.insertAdjacentHTML('beforeend', loadingHTML);
     scrollToBottom();
 
-    // 3. Gọi API PHP backend
-    fetch('api_chat.php', {
+    // 3. Gọi backend xử lý chat bằng FormData chuẩn (tránh tường lửa ModSecurity 403 Forbidden)
+    const formData = new FormData();
+    formData.append('message', message);
+
+    fetch('chat_process.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message })
+        body: formData
     })
     .then(async res => {
         const text = await res.text();

@@ -414,13 +414,22 @@
         chatbox.insertAdjacentHTML('beforeend', loadingHtml);
         chatbox.scrollTop = chatbox.scrollHeight;
 
-        // Gọi API Chat
-        fetch('api_chat.php', {
+        // Gọi backend xử lý chat bằng FormData
+        const formData = new FormData();
+        formData.append('message', message);
+
+        fetch('chat_process.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message })
+            body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch(e) {
+                return { reply: text || 'Lỗi phản hồi máy chủ.' };
+            }
+        })
         .then(data => {
             const loadingElem = document.getElementById(loadingId);
             if (loadingElem) loadingElem.remove();
