@@ -2,7 +2,7 @@
 // Lấy thông báo
 $uid_tb = $_SESSION['user_id'] ?? 0;
 $rid_tb = $_SESSION['role_id'] ?? 0;
-$thongbao_sql = "SELECT * FROM ThongBao WHERE (maTaiKhoan = $uid_tb OR maVaiTro = $rid_tb) ORDER BY ngayTao DESC LIMIT 10";
+$thongbao_sql = "SELECT * FROM thongbao WHERE (maTaiKhoan = $uid_tb OR maVaiTro = $rid_tb) ORDER BY ngayTao DESC LIMIT 10";
 $thongbao_res = $conn->query($thongbao_sql);
 $tb_count = 0;
 $thongbaos = [];

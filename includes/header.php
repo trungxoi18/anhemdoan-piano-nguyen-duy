@@ -25,7 +25,7 @@ $avatar_letter = mb_substr($fullname, 0, 1, "UTF-8");
 // Lấy ảnh đại diện nếu có
 $user_avatar = null;
 $uid_header = $_SESSION['user_id'] ?? 0;
-$stmt_avatar = $conn->prepare("SELECT nv.anhDaiDien FROM NhanVien nv JOIN TaiKhoan tk ON tk.maNhanVien = nv.maNhanVien WHERE tk.maTaiKhoan = ?");
+$stmt_avatar = $conn->prepare("SELECT nv.anhDaiDien FROM nhanvien nv JOIN taikhoan tk ON tk.maNhanVien = nv.maNhanVien WHERE tk.maTaiKhoan = ?");
 if ($stmt_avatar) {
     $stmt_avatar->bind_param("i", $uid_header);
     $stmt_avatar->execute();

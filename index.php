@@ -22,7 +22,7 @@ $don_dang_xu_ly = 0;
 
 // 1. Tổng đàn trong kho và Tổng giá trị
 $sql_tong = "SELECT COUNT(maSerial) AS total, SUM(giaNhap) as total_value 
-             FROM DanSerial 
+             FROM danserial 
              WHERE trangThai LIKE '%Trong kho%'";
 $res_tong = $conn->query($sql_tong);
 if($res_tong && $row = $res_tong->fetch_assoc()) { 
@@ -33,7 +33,7 @@ if($res_tong && $row = $res_tong->fetch_assoc()) {
 // 2. Sản phẩm sắp hết
 $sql_sap_het = "SELECT COUNT(*) AS total_sap_het FROM (
                     SELECT maMau, COUNT(maSerial) as SL 
-                    FROM DanSerial 
+                    FROM danserial 
                     WHERE trangThai LIKE '%Trong kho%' 
                     GROUP BY maMau 
                     HAVING SL <= 5
@@ -49,7 +49,7 @@ $nam_ht = date('Y');
 $sql_dt = "SELECT 
             SUM(CASE WHEN trangThai != 'Đã hủy' THEN tongTien ELSE 0 END) AS total,
             SUM(CASE WHEN trangThai = 'Hoàn thành' OR trangThai = 'Đã giao' THEN tongTien ELSE 0 END) AS total_thuc_te
-           FROM HoaDon 
+           FROM hoadon 
            WHERE MONTH(ngayLap) = '$thang_ht' AND YEAR(ngayLap) = '$nam_ht'";
 $res_dt = $conn->query($sql_dt);
 if($res_dt && $row = $res_dt->fetch_assoc()) { 

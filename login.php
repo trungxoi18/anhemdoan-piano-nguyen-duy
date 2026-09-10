@@ -7,11 +7,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user = $_POST['username'];
     $pass = $_POST['password'];
 
-    // Truy vấn kết hợp bảng TaiKhoan và NhanVien
-    $sql = "SELECT tk.MaTaiKhoan, tk.TenDangNhap, nv.HoTen, tk.MaVaiTro 
-            FROM TaiKhoan tk
-            JOIN NhanVien nv ON tk.MaNhanVien = nv.MaNhanVien
-            WHERE tk.TenDangNhap = ? AND tk.MatKhau = ? AND tk.TrangThai = 'Hoạt động'";
+    // Truy vấn kết hợp bảng taikhoan và nhanvien (chuẩn chữ thường cho máy chủ Linux)
+    $sql = "SELECT tk.maTaiKhoan, tk.tenDangNhap, nv.hoTen, tk.maVaiTro 
+            FROM taikhoan tk
+            JOIN nhanvien nv ON tk.maNhanVien = nv.maNhanVien
+            WHERE tk.tenDangNhap = ? AND tk.matKhau = ? AND tk.trangThai = 'Hoạt động'";
 
     $stmt = $conn->prepare($sql);
     
@@ -20,14 +20,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->execute();
     $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         $row = $result->fetch_assoc();
         
         // Lưu thông tin vào Session
-        $_SESSION['user_id'] = $row['MaTaiKhoan'];
-        $_SESSION['username'] = $row['TenDangNhap'];
-        $_SESSION['fullname'] = $row['HoTen'];
-        $_SESSION['role_id'] = $row['MaVaiTro'];
+        $_SESSION['user_id'] = $row['maTaiKhoan'];
+        $_SESSION['username'] = $row['tenDangNhap'];
+        $_SESSION['fullname'] = $row['hoTen'];
+        $_SESSION['role_id'] = $row['maVaiTro'];
 
         // Ghi log
         writeLog($conn, 'ĐĂNG NHẬP', 'Đăng nhập vào hệ thống thành công');
