@@ -26,16 +26,9 @@ set_exception_handler(function($e) {
     sendResponse("Xin lỗi, hệ thống AI tạm thời gián đoạn: " . $e->getMessage());
 });
 
-$rawInput = file_get_contents('php://input');
-if (empty($rawInput)) {
-    $rawInput = file_get_contents('php://stdin');
-}
-$data = json_decode($rawInput, true);
-
 $userMessage = '';
-if (isset($data['message']) && !empty(trim($data['message']))) {
-    $userMessage = trim($data['message']);
-} elseif (isset($_POST['message']) && !empty(trim($_POST['message']))) {
+// Chỉ nhận dữ liệu qua POST (FormData) để vượt tường lửa
+if (isset($_POST['message']) && !empty(trim($_POST['message']))) {
     $userMessage = trim($_POST['message']);
 }
 
