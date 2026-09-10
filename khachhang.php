@@ -83,9 +83,9 @@ if ($is_admin_or_sales && $_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ssss", $hoTen, $soDienThoai, $emailKH, $diaChi);
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Thêm khách hàng thành công!</div>";
+            $_SESSION['flash_success'] = "Thêm khách hàng thành công!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . $conn->error;
         }
     }
     
@@ -101,9 +101,9 @@ if ($is_admin_or_sales && $_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ssssi", $hoTen, $soDienThoai, $emailKH, $diaChi, $maKhachHang);
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Cập nhật thông tin khách hàng thành công!</div>";
+            $_SESSION['flash_success'] = "Cập nhật thông tin khách hàng thành công!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . $conn->error;
         }
     }
 
@@ -114,17 +114,31 @@ if ($is_admin_or_sales && $_SERVER['REQUEST_METHOD'] == 'POST') {
         // Kiểm tra xem khách hàng này đã có hóa đơn chưa
         $check_hd = $conn->query("SELECT maHoaDon FROM hoadon WHERE maKhachHang = $maKhachHang LIMIT 1");
         if ($check_hd->num_rows > 0) {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Không thể xóa khách hàng đã từng giao dịch (đã có hóa đơn)!</div>";
+            $_SESSION['flash_error'] = "Không thể xóa khách hàng đã từng giao dịch (đã có hóa đơn)!";
         } else {
             $stmt = $conn->prepare("DELETE FROM khachhang WHERE maKhachHang = ?");
             $stmt->bind_param("i", $maKhachHang);
             if ($stmt->execute()) {
-                $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã xóa khách hàng!</div>";
+                $_SESSION['flash_success'] = "Đã xóa khách hàng!";
             } else {
-                $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi xóa khách hàng: " . $conn->error . "</div>";
+                $_SESSION['flash_error'] = "Lỗi xóa khách hàng: " . $conn->error;
             }
         }
     }
+
+    $redirectUrl = "khachhang.php" . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
+    header("Location: $redirectUrl");
+    exit();
+}
+
+$msg = "";
+if (isset($_SESSION['flash_success'])) {
+    $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> " . htmlspecialchars($_SESSION['flash_success']) . "</div>";
+    unset($_SESSION['flash_success']);
+}
+if (isset($_SESSION['flash_error'])) {
+    $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> " . htmlspecialchars($_SESSION['flash_error']) . "</div>";
+    unset($_SESSION['flash_error']);
 }
 
 // Lấy danh sách khách hàng

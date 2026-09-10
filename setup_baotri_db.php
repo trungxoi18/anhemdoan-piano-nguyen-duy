@@ -31,4 +31,13 @@ if ($conn->query($sql_create) === TRUE) {
 } else {
     echo "Lỗi tạo bảng phieubaotri: " . $conn->error . "<br>\n";
 }
+
+// 3. Thêm cột maKho nếu chưa có
+$res_kho = $conn->query("SHOW COLUMNS FROM phieubaotri LIKE 'maKho'");
+if ($res_kho->num_rows == 0) {
+    $conn->query("ALTER TABLE phieubaotri ADD COLUMN maKho INT NULL AFTER maHang");
+    echo "Đã thêm cột maKho vào bảng phieubaotri<br>\n";
+} else {
+    echo "Cột maKho đã tồn tại trong phieubaotri<br>\n";
+}
 ?>

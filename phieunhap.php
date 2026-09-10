@@ -334,11 +334,11 @@ $history_result = $conn->query($sql_history);
                     </select>
 
                     <div id="product-container">
-                        <div class="product-row" data-row="1">
+                        <div class="product-row" data-row="1" style="display: grid; grid-template-columns: 1fr 1.3fr 180px auto; gap: 16px; align-items: start; position: relative; background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 16px;">
                             <span class="row-number">1</span>
-                            <div>
-                                <span class="product-row-label">Mẫu đàn (Model)</span>
-                                <select name="maMau[]" class="custom-input dan-select" required onchange="fetchPriceHint(this)">
+                            <div style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Mẫu đàn (Model)</span>
+                                <select name="maMau[]" class="custom-input dan-select" required onchange="fetchPriceHint(this)" style="height: 46px; box-sizing: border-box;">
                                     <?php 
                                     if ($maudans) {
                                         $maudans->data_seek(0);
@@ -347,18 +347,21 @@ $history_result = $conn->query($sql_history);
                                     ?>
                                 </select>
                             </div>
-                            <div class="col-serial">
-                                <span class="product-row-label">Số Serial</span>
-                                <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Quét hoặc nhập mã Serial..." required oninput="checkSerial(this)">
-                                <div class="serial-status" id="serial-status-1"></div>
+                            <div class="col-serial" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Số Serial</span>
+                                <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Quét hoặc nhập mã Serial..." required oninput="checkSerial(this)" style="height: 46px; box-sizing: border-box;">
+                                <div class="serial-status" id="serial-status-1" style="font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 4px; min-height: 18px;"></div>
                             </div>
-                            <div class="col-price">
-                                <span class="product-row-label">Giá nhập (VNĐ)</span>
-                                <input type="number" name="giaNhap[]" class="custom-input price-input" placeholder="0" min="0" required oninput="updateSummary()">
+                            <div class="col-price" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Giá nhập (VNĐ)</span>
+                                <input type="number" name="giaNhap[]" class="custom-input price-input" placeholder="0" min="0" required oninput="updateSummary()" style="height: 46px; box-sizing: border-box;">
                             </div>
-                            <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" title="Xóa dòng này">
-                                <span class="material-symbols-rounded">delete</span>
-                            </button>
+                            <div class="col-action" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; visibility: hidden; height: 18px; line-height: 18px;">&nbsp;</span>
+                                <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" title="Xóa dòng này" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);">
+                                    <span class="material-symbols-rounded">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -475,36 +478,49 @@ $history_result = $conn->query($sql_history);
 
 let rowCounter = 1;
 let serialCheckTimers = {};
+let productOptions = document.getElementById('product-template').innerHTML;
 
 // === Thêm dòng sản phẩm ===
-function addProductRow() {
+function addProductRow(preselectedModel = null, prefilledSerial = null) {
     rowCounter++;
     const container = document.getElementById('product-container');
-    const options = document.getElementById('product-template').innerHTML;
-    
     const newRow = document.createElement('div');
     newRow.className = 'product-row';
     newRow.setAttribute('data-row', rowCounter);
+    newRow.style.display = 'grid';
+    newRow.style.gridTemplateColumns = '1fr 1.3fr 180px auto';
+    newRow.style.gap = '16px';
+    newRow.style.alignItems = 'start';
+    newRow.style.position = 'relative';
+    newRow.style.background = 'var(--bg-tertiary)';
+    newRow.style.padding = '20px';
+    newRow.style.borderRadius = 'var(--radius-md)';
+    newRow.style.border = '1px solid var(--border)';
+    newRow.style.marginBottom = '16px';
+    
     newRow.innerHTML = `
         <span class="row-number">${rowCounter}</span>
-        <div>
-            <span class="product-row-label">Mẫu đàn (Model)</span>
-            <select name="maMau[]" class="custom-input dan-select" required onchange="fetchPriceHint(this)">
-                ${options}
+        <div style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Mẫu đàn (Model)</span>
+            <select name="maMau[]" class="custom-input dan-select" required onchange="fetchPriceHint(this)" style="height: 46px; box-sizing: border-box;">
+                ${productOptions}
             </select>
         </div>
-        <div class="col-serial">
-            <span class="product-row-label">Số Serial</span>
-            <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Quét hoặc nhập mã Serial..." required oninput="checkSerial(this)">
-            <div class="serial-status" id="serial-status-${rowCounter}"></div>
+        <div class="col-serial" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Số Serial</span>
+            <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Quét hoặc nhập mã Serial..." required oninput="checkSerial(this)" value="${prefilledSerial || ''}" style="height: 46px; box-sizing: border-box;">
+            <div class="serial-status" id="serial-status-${rowCounter}" style="font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 4px; min-height: 18px;"></div>
         </div>
-        <div class="col-price">
-            <span class="product-row-label">Giá nhập (VNĐ)</span>
-            <input type="number" name="giaNhap[]" class="custom-input price-input" placeholder="0" min="0" required oninput="updateSummary()">
+        <div class="col-price" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Giá nhập (VNĐ)</span>
+            <input type="number" name="giaNhap[]" class="custom-input price-input" placeholder="0" min="0" required oninput="updateSummary()" style="height: 46px; box-sizing: border-box;">
         </div>
-        <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" title="Xóa dòng này">
-            <span class="material-symbols-rounded">delete</span>
-        </button>
+        <div class="col-action" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; visibility: hidden; height: 18px; line-height: 18px;">&nbsp;</span>
+            <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" title="Xóa dòng này" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);">
+                <span class="material-symbols-rounded">delete</span>
+            </button>
+        </div>
     `;
     container.appendChild(newRow);
     

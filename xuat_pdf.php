@@ -63,7 +63,7 @@ if (!isset($_SESSION['user_id'])) {
 $type = $_GET['type'] ?? '';
 $id = intval($_GET['id'] ?? 0);
 
-if (!$type || !$id) {
+if (!$type || (!$id && $type !== 'baocao_nhapxuatton')) {
     echo "Dữ liệu không hợp lệ!";
     exit();
 }
@@ -104,6 +104,156 @@ if ($type == 'hoadon') {
     $res_ct = $stmt_ct->get_result();
     while($row = $res_ct->fetch_assoc()){ $details[] = $row; }
 
+} elseif ($type == 'baocao_nhapxuatton') {
+    $title = "BÁO CÁO NHẬP XUẤT TỒN KHO";
+    
+    $start_of_month = date('Y-m-01');
+    $end_of_month = date('Y-m-t');
+
+    $startDate = isset($_GET['tu_ngay']) ? trim($_GET['tu_ngay']) : $start_of_month;
+    $endDate = isset($_GET['den_ngay']) ? trim($_GET['den_ngay']) : $end_of_month;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) $startDate = $start_of_month;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) $endDate = $end_of_month;
+    if ($startDate > $endDate) {
+        $tmp = $startDate;
+        $startDate = $endDate;
+        $endDate = $tmp;
+    }
+
+    $startDate = $conn->real_escape_string($startDate);
+    $endDate = $conn->real_escape_string($endDate);
+
+    $maKhoFilter = isset($_GET['ma_kho']) ? intval($_GET['ma_kho']) : 0;
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+    $tenKhoBaoCao = "Toàn bộ hệ thống kho";
+    $diaChiKhoBaoCao = "Số 53 đường Lạch Tray, Quận Ngô Quyền, TP Hải Phòng";
+    if ($maKhoFilter > 0) {
+        $st_k = $conn->query("SELECT tenKho, diaChi FROM kho WHERE maKho = $maKhoFilter");
+        if ($st_k && $k_info = $st_k->fetch_assoc()) {
+            $tenKhoBaoCao = $k_info['tenKho'];
+            $diaChiKhoBaoCao = $k_info['diaChi'] ?: $diaChiKhoBaoCao;
+        }
+    }
+
+    // 1. Lấy danh sách Mẫu Đàn
+    $sql_mau = "SELECT md.maMau, md.tenMau, loai.tenLoai, hang.tenHang,
+            (SELECT MAX(giaBan) FROM danserial WHERE maMau = md.maMau) as giaBan
+            FROM maudan md 
+            LEFT JOIN loaidan loai ON md.maLoai = loai.maLoai 
+            LEFT JOIN hangdan hang ON md.maHang = hang.maHang
+            WHERE 1=1";
+    if (!empty($search)) {
+        $sql_mau .= " AND md.tenMau LIKE '%" . $conn->real_escape_string($search) . "%'";
+    }
+    $sql_mau .= " ORDER BY md.tenMau ASC";
+    $resMau = $conn->query($sql_mau);
+
+    $report = [];
+    while ($mau = $resMau->fetch_assoc()) {
+        $maMau = $mau['maMau'];
+        $report[$maMau] = [
+            'maMau' => $maMau,
+            'tenMau' => $mau['tenMau'],
+            'tenLoai' => $mau['tenLoai'],
+            'tenHang' => $mau['tenHang'],
+            'giaBan' => (float)($mau['giaBan'] ?? 0),
+            'tonHienTai' => 0,
+            'xuatTrongKy' => 0,
+            'nhapTrongKy' => 0,
+            'xuatSauKy' => 0,
+            'nhapSauKy' => 0
+        ];
+    }
+
+    $khoFilter = $maKhoFilter > 0 ? "AND ds.maKho = $maKhoFilter" : "";
+    $khoXuatFilter = $maKhoFilter > 0 ? "AND dc.maKhoXuat = $maKhoFilter" : "";
+    $khoNhapFilter = $maKhoFilter > 0 ? "AND dc.maKhoNhap = $maKhoFilter" : "";
+    $pxKhoFilter = $maKhoFilter > 0 ? "AND px.maKho = $maKhoFilter" : "";
+    $pnKhoFilter = $maKhoFilter > 0 ? "AND pn.maKho = $maKhoFilter" : "";
+
+    // 1. Tồn hiện tại
+    $res = $conn->query("SELECT maMau, COUNT(*) as sl FROM danserial ds WHERE trangThai IN ('Trong kho', 'Chờ xuất', 'Chờ giao', 'Đang điều chuyển') $khoFilter GROUP BY maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['tonHienTai'] = (int)$r['sl'];
+
+    // 2. Xuất trong kỳ
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietphieuxuat ct JOIN phieuxuat px ON ct.maPhieuXuat = px.maPhieuXuat JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE px.trangThai = 'Hoàn thành' AND DATE(px.ngayXuat) BETWEEN '$startDate' AND '$endDate' $pxKhoFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['xuatTrongKy'] += (int)$r['sl'];
+
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietdieuchuyen ct JOIN phieudieuchuyen dc ON ct.maPhieuDC = dc.maPhieuDC JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE dc.trangThai = 'Hoàn thành' AND DATE(dc.ngayTao) BETWEEN '$startDate' AND '$endDate' $khoXuatFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['xuatTrongKy'] += (int)$r['sl'];
+
+    // 3. Nhập trong kỳ
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietphieunhap ct JOIN phieunhap pn ON ct.maPhieuNhap = pn.maPhieuNhap JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE pn.trangThai = 'Hoàn thành' AND DATE(pn.ngayNhap) BETWEEN '$startDate' AND '$endDate' $pnKhoFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['nhapTrongKy'] += (int)$r['sl'];
+
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietdieuchuyen ct JOIN phieudieuchuyen dc ON ct.maPhieuDC = dc.maPhieuDC JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE dc.trangThai = 'Hoàn thành' AND DATE(dc.ngayTao) BETWEEN '$startDate' AND '$endDate' $khoNhapFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['nhapTrongKy'] += (int)$r['sl'];
+
+    // 4. Xuất sau kỳ
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietphieuxuat ct JOIN phieuxuat px ON ct.maPhieuXuat = px.maPhieuXuat JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE px.trangThai = 'Hoàn thành' AND DATE(px.ngayXuat) > '$endDate' $pxKhoFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['xuatSauKy'] += (int)$r['sl'];
+
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietdieuchuyen ct JOIN phieudieuchuyen dc ON ct.maPhieuDC = dc.maPhieuDC JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE dc.trangThai = 'Hoàn thành' AND DATE(dc.ngayTao) > '$endDate' $khoXuatFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['xuatSauKy'] += (int)$r['sl'];
+
+    // 5. Nhập sau kỳ
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietphieunhap ct JOIN phieunhap pn ON ct.maPhieuNhap = pn.maPhieuNhap JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE pn.trangThai = 'Hoàn thành' AND DATE(pn.ngayNhap) > '$endDate' $pnKhoFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['nhapSauKy'] += (int)$r['sl'];
+
+    $res = $conn->query("SELECT ds.maMau, COUNT(ct.maSerial) as sl FROM chitietdieuchuyen ct JOIN phieudieuchuyen dc ON ct.maPhieuDC = dc.maPhieuDC JOIN danserial ds ON ct.maSerial = ds.maSerial WHERE dc.trangThai = 'Hoàn thành' AND DATE(dc.ngayTao) > '$endDate' $khoNhapFilter GROUP BY ds.maMau");
+    while ($r = $res->fetch_assoc()) if (isset($report[$r['maMau']])) $report[$r['maMau']]['nhapSauKy'] += (int)$r['sl'];
+
+    // Tổng hợp kết quả
+    $final_report = [];
+    $tongTonDau = $tongNhap = $tongXuat = $tongTonCuoi = 0;
+    $tongGiaTriTon = 0;
+
+    foreach ($report as $r) {
+        $tonCuoiKy = $r['tonHienTai'] + $r['xuatSauKy'] - $r['nhapSauKy'];
+        $tonDauKy = $tonCuoiKy + $r['xuatTrongKy'] - $r['nhapTrongKy'];
+        $giaBan = $r['giaBan'];
+        $thanhTienTon = $tonCuoiKy * $giaBan;
+        
+        if ($tonDauKy > 0 || $r['nhapTrongKy'] > 0 || $r['xuatTrongKy'] > 0 || $tonCuoiKy > 0) {
+            $final_report[] = [
+                'maMau' => $r['maMau'],
+                'tenMau' => $r['tenMau'],
+                'tenLoai' => $r['tenLoai'],
+                'tenHang' => $r['tenHang'],
+                'giaBan' => $giaBan,
+                'tonDauKy' => $tonDauKy,
+                'nhapTrongKy' => $r['nhapTrongKy'],
+                'xuatTrongKy' => $r['xuatTrongKy'],
+                'tonCuoiKy' => $tonCuoiKy,
+                'thanhTienTon' => $thanhTienTon
+            ];
+            
+            $tongTonDau += $tonDauKy;
+            $tongNhap += $r['nhapTrongKy'];
+            $tongXuat += $r['xuatTrongKy'];
+            $tongTonCuoi += $tonCuoiKy;
+            $tongGiaTriTon += $thanhTienTon;
+        }
+    }
+
+    // Danh sách đàn bảo trì đang lưu kho
+    $sql_bt = "SELECT ds.soSerial, md.tenMau, hd.tenHang, k.tenKho, pb.maPhieuBT, kh.hoTen as tenKH, pb.moTaLoi
+               FROM danserial ds
+               JOIN maudan md ON ds.maMau = md.maMau
+               JOIN hangdan hd ON md.maHang = hd.maHang
+               LEFT JOIN kho k ON ds.maKho = k.maKho
+               LEFT JOIN phieubaotri pb ON ds.maSerial = pb.maSerial AND pb.trangThai = 'Đã nhập kho'
+               LEFT JOIN khachhang kh ON pb.maKhachHang = kh.maKhachHang
+               WHERE ds.trangThai = 'Đang bảo hành' $khoFilter
+               ORDER BY ds.soSerial ASC";
+    $res_bt = $conn->query($sql_bt);
+    $danhSachBaoTri = [];
+    if ($res_bt) {
+        while($bt_row = $res_bt->fetch_assoc()) {
+            $danhSachBaoTri[] = $bt_row;
+        }
+    }
 } elseif ($type == 'phieuxuat') {
     $title = "PHIẾU XUẤT KHO";
     // Lấy thông tin phiếu xuất
@@ -188,12 +338,14 @@ if ($type == 'hoadon') {
     elseif ($type == 'baotri_xuat') $title = "PHIẾU XUẤT HÃNG BẢO TRÍ";
 
     $sql = "SELECT pb.*, kh.hoTen as tenKH, kh.soDienThoai as sdtKH, kh.diaChi as diaChiKH, 
-            ds.soSerial, md.tenMau, hd.tenHang as tenHangSanXuat, nv.hoTen as tenNVLap
+            ds.soSerial, md.tenMau, hd.tenHang as tenHangSanXuat, nv.hoTen as tenNVLap,
+            k.tenKho, k.diaChi as diaChiKho
             FROM phieubaotri pb
             JOIN khachhang kh ON pb.maKhachHang = kh.maKhachHang
             JOIN danserial ds ON pb.maSerial = ds.maSerial
             JOIN maudan md ON ds.maMau = md.maMau
             LEFT JOIN hangdan hd ON pb.maHang = hd.maHang
+            LEFT JOIN kho k ON (pb.maKho = k.maKho OR (pb.maKho IS NULL AND ds.maKho = k.maKho))
             JOIN nhanvien nv ON pb.maNhanVienLap = nv.maNhanVien
             WHERE pb.maPhieuBT = ?";
     $stmt = $conn->prepare($sql);
@@ -458,7 +610,287 @@ if ($type == 'hoadon') {
         <?php endif; ?>
     </div>
 
-    <?php if ($type == 'phieunhap'): ?>
+    <?php if ($type == 'baocao_nhapxuatton'): ?>
+    
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm 10mm;
+            }
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+            }
+            .action-bar { display: none !important; }
+            .page-landscape {
+                width: 100% !important;
+                min-height: auto !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+        }
+        .page-landscape {
+            background: white;
+            width: 285mm;
+            min-height: 195mm;
+            margin: 0 auto;
+            padding: 12mm 15mm;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            position: relative;
+            box-sizing: border-box;
+            color: #000;
+            font-family: "Times New Roman", Times, serif;
+        }
+        .bc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .bc-left { width: 44%; }
+        .bc-left p { margin: 2px 0; font-size: 13px; line-height: 1.35; }
+        .bc-center { width: 36%; text-align: center; }
+        .bc-center h1 {
+            font-size: 19px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0 0 4px 0;
+            color: #000;
+            letter-spacing: 0.5px;
+        }
+        .bc-center p { margin: 2px 0; font-size: 13px; }
+        .bc-right { width: 20%; text-align: center; font-size: 12.5px; }
+        .bc-right p { margin: 2px 0; }
+
+        /* KPI Bar */
+        .bc-summary-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #f8fafc;
+            border: 1px solid #000;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+        .bc-summary-item { text-align: center; }
+        .bc-summary-item span { font-size: 11.5px; color: #444; text-transform: uppercase; font-weight: 600; }
+        .bc-summary-item strong { display: block; font-size: 15px; color: #000; margin-top: 2px; }
+
+        /* Table */
+        .bc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+        .bc-table th, .bc-table td {
+            border: 1px solid #000;
+            padding: 5px 5px;
+            text-align: center;
+        }
+        .bc-table th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+        }
+        .bc-table td.text-left { text-align: left; }
+        .bc-table td.text-right { text-align: right; }
+        .bc-table tr.total-row td {
+            font-weight: bold;
+            background-color: #f8fafc;
+        }
+
+        /* Phụ lục */
+        .bc-appendix {
+            margin-top: 10px;
+            margin-bottom: 14px;
+            border: 1px dashed #666;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #fffbeb;
+        }
+        .bc-appendix h4 { margin: 0 0 4px 0; font-size: 12.5px; color: #b45309; }
+
+        /* Signatures */
+        .bc-signs {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin-top: 20px;
+            page-break-inside: avoid;
+        }
+        .bc-signs > div { width: 23%; }
+        .bc-signs strong { display: block; font-size: 13px; text-transform: uppercase; }
+        .bc-signs em { display: block; font-size: 11.5px; margin-bottom: 50px; color: #555; }
+        .bc-signs span { font-weight: bold; font-size: 13px; display: block; }
+    </style>
+
+    <div class="page-landscape">
+        <div class="bc-header">
+            <div class="bc-left">
+                <p><strong>CÔNG TY TNHH NGHỆ THUẬT VÀ NHẠC CỤ PIANO NGUYỄN DUY</strong></p>
+                <p><strong>Địa chỉ:</strong> Số 53 đường Lạch Tray, Quận Ngô Quyền, TP Hải Phòng</p>
+                <p><strong>Điện thoại:</strong> 0123.456.789 &nbsp;|&nbsp; <strong>Mã số thuế:</strong> 0201234567</p>
+                <p><strong>Bộ phận:</strong> Quản lý Kho & Kế toán hàng tồn kho</p>
+            </div>
+            <div class="bc-center">
+                <h1>BÁO CÁO NHẬP - XUẤT - TỒN KHO</h1>
+                <p style="font-style: italic;">Từ ngày <?= date('d/m/Y', strtotime($startDate)) ?> đến ngày <?= date('d/m/Y', strtotime($endDate)) ?></p>
+                <p><strong>Kho báo cáo:</strong> <?= htmlspecialchars($tenKhoBaoCao) ?></p>
+                <p style="font-size: 11.5px; color: #444;"><?= htmlspecialchars($diaChiKhoBaoCao) ?></p>
+            </div>
+            <div class="bc-right">
+                <p><strong>Mẫu số: S10-DN</strong></p>
+                <p style="font-style: italic; font-size: 10.5px;">(Ban hành theo Thông tư số 200/2014/TT-BTC & TT 133/2016/TT-BTC của BTC)</p>
+                <p style="margin-top: 4px; font-size: 11.5px;">Ngày lập: <?= date('d/m/Y') ?></p>
+            </div>
+        </div>
+
+        <!-- Tóm tắt số liệu trọng yếu -->
+        <div class="bc-summary-bar">
+            <div class="bc-summary-item">
+                <span>TỒN ĐẦU KỲ</span>
+                <strong><?= number_format($tongTonDau) ?> cây</strong>
+            </div>
+            <div class="bc-summary-item">
+                <span>NHẬP TRONG KỲ</span>
+                <strong style="color: #059669;">+<?= number_format($tongNhap) ?> cây</strong>
+            </div>
+            <div class="bc-summary-item">
+                <span>XUẤT TRONG KỲ</span>
+                <strong style="color: #dc2626;">-<?= number_format($tongXuat) ?> cây</strong>
+            </div>
+            <div class="bc-summary-item">
+                <span>TỒN CUỐI KỲ</span>
+                <strong style="color: #2563eb;"><?= number_format($tongTonCuoi) ?> cây</strong>
+            </div>
+            <div class="bc-summary-item">
+                <span>TỔNG GIÁ TRỊ TỒN CUỐI (NIÊM YẾT)</span>
+                <strong style="color: #7c3aed;"><?= number_format($tongGiaTriTon, 0, ',', '.') ?> đ</strong>
+            </div>
+        </div>
+
+        <!-- Bảng chi tiết Nhập Xuất Tồn -->
+        <table class="bc-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" width="4%">STT</th>
+                    <th rowspan="2" width="9%">Mã Mẫu</th>
+                    <th rowspan="2" width="23%">Tên Hàng Hóa, Nhãn Hiệu, Quy Cách</th>
+                    <th rowspan="2" width="10%">Hãng</th>
+                    <th rowspan="2" width="5%">ĐVT</th>
+                    <th rowspan="2" width="8%">Tồn Đầu Kỳ</th>
+                    <th colspan="2" width="16%">Phát Sinh Trong Kỳ</th>
+                    <th colspan="2" width="25%">Tồn Cuối Kỳ</th>
+                </tr>
+                <tr>
+                    <th width="8%">Nhập</th>
+                    <th width="8%">Xuất</th>
+                    <th width="8%">Số Lượng</th>
+                    <th width="17%">Thành Tiền (VNĐ)</th>
+                </tr>
+                <tr style="font-size: 10.5px; background: #fafafa;">
+                    <th>A</th>
+                    <th>B</th>
+                    <th>C</th>
+                    <th>D</th>
+                    <th>E</th>
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>4 = 1+2-3</th>
+                    <th>5 = 4 x Đơn giá</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($final_report)): ?>
+                    <?php $stt = 1; foreach ($final_report as $row): ?>
+                    <tr>
+                        <td><?= $stt++ ?></td>
+                        <td><strong>MD<?= str_pad($row['maMau'], 3, '0', STR_PAD_LEFT) ?></strong></td>
+                        <td class="text-left"><?= htmlspecialchars($row['tenMau']) ?> (<?= htmlspecialchars($row['tenLoai']) ?>)</td>
+                        <td><?= htmlspecialchars($row['tenHang']) ?></td>
+                        <td>Cây</td>
+                        <td><?= number_format($row['tonDauKy']) ?></td>
+                        <td style="color: #059669; font-weight: <?= $row['nhapTrongKy'] > 0 ? 'bold' : 'normal' ?>;"><?= $row['nhapTrongKy'] > 0 ? '+' . number_format($row['nhapTrongKy']) : '-' ?></td>
+                        <td style="color: #dc2626; font-weight: <?= $row['xuatTrongKy'] > 0 ? 'bold' : 'normal' ?>;"><?= $row['xuatTrongKy'] > 0 ? '-' . number_format($row['xuatTrongKy']) : '-' ?></td>
+                        <td style="font-weight: bold;"><?= number_format($row['tonCuoiKy']) ?></td>
+                        <td class="text-right" style="font-weight: bold;"><?= $row['thanhTienTon'] > 0 ? number_format($row['thanhTienTon'], 0, ',', '.') : '-' ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <tr class="total-row">
+                        <td colspan="5" style="text-align: center; font-weight: bold;">TỔNG CỘNG</td>
+                        <td><?= number_format($tongTonDau) ?></td>
+                        <td style="color: #059669;"><?= number_format($tongNhap) ?></td>
+                        <td style="color: #dc2626;"><?= number_format($tongXuat) ?></td>
+                        <td style="font-weight: bold; color: #2563eb;"><?= number_format($tongTonCuoi) ?></td>
+                        <td class="text-right" style="font-weight: bold; color: #7c3aed;"><?= number_format($tongGiaTriTon, 0, ',', '.') ?></td>
+                    </tr>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="10" style="padding: 20px; font-style: italic;">Không có phát sinh hoặc tồn kho trong khoảng thời gian đã chọn.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <div style="font-size: 13px; margin-bottom: 8px;">
+            <p>- Tổng giá trị tài sản tồn kho (Viết bằng chữ): <strong><?= soTienBangChu($tongGiaTriTon) ?></strong></p>
+        </div>
+
+        <!-- Phụ lục hàng bảo trì lưu kho (nếu có) -->
+        <?php if (!empty($danhSachBaoTri)): ?>
+        <div class="bc-appendix">
+            <h4><span class="material-symbols-rounded" style="font-size: 14px; vertical-align: text-bottom;">info</span> PHỤ LỤC: HÀNG CỦA KHÁCH GỬI BẢO TRÌ ĐANG LƯU KHO (KHÔNG TÍNH VÀO TỒN THƯƠNG MẠI)</h4>
+            <div style="line-height: 1.45;">
+                Hiện tại kho đang lưu giữ tạm thời <strong><?= count($danhSachBaoTri) ?> cây đàn</strong> của khách hàng gửi bảo hành/sửa chữa:
+                <ul style="margin: 3px 0 0 18px; padding: 0;">
+                    <?php foreach($danhSachBaoTri as $bt): ?>
+                        <li>
+                            <strong><?= htmlspecialchars($bt['tenMau']) ?></strong> (Serial: <code><?= htmlspecialchars($bt['soSerial']) ?></code>) 
+                            - Thuộc Phiếu BT: <strong>#<?= $bt['maPhieuBT'] ?></strong> (Khách: <?= htmlspecialchars($bt['tenKH'] ?? 'Khách lẻ') ?>)
+                            <?php if(!empty($bt['moTaLoi'])): ?> <em>- Lỗi: <?= htmlspecialchars($bt['moTaLoi']) ?></em><?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <div style="text-align: right; font-style: italic; font-size: 12.5px; margin-top: 8px; margin-bottom: 4px;">
+            Hải Phòng, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?>
+        </div>
+
+        <!-- Khối chữ ký 4 bên -->
+        <div class="bc-signs">
+            <div>
+                <strong>Người Lập Biểu</strong>
+                <em>(Ký, họ tên)</em>
+                <span><?= htmlspecialchars($_SESSION['fullname'] ?? 'Nhân viên') ?></span>
+            </div>
+            <div>
+                <strong>Thủ Kho</strong>
+                <em>(Ký, họ tên)</em>
+                <span>.....................................</span>
+            </div>
+            <div>
+                <strong>Kế Toán Trưởng</strong>
+                <em>(Ký, họ tên)</em>
+                <span>.....................................</span>
+            </div>
+            <div>
+                <strong>Giám Đốc Duyệt</strong>
+                <em>(Ký, đóng dấu)</em>
+                <span>.....................................</span>
+            </div>
+        </div>
+    </div>
+
+    <?php elseif ($type == 'phieunhap'): ?>
     
     <style>
         .pn-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-family: "Times New Roman", Times, serif; }
@@ -839,7 +1271,8 @@ if ($type == 'hoadon') {
                 <p style="margin-top: 15px; font-style: italic; color: #555;">(Lưu ý: Quý khách vui lòng giữ lại phiếu này để đối chiếu khi nhận lại đàn)</p>
             <?php elseif ($type == 'baotri_nhap'): ?>
                 <p><strong>Tình trạng / Lỗi ghi nhận:</strong> <?= nl2br(htmlspecialchars($data['moTaLoi'])) ?></p>
-                <p><strong>Ghi chú Nhập Kho:</strong> Nhập kho để tiến hành bảo hành/bảo trì.</p>
+                <p><strong>Kho tiếp nhận bảo trì:</strong> <?= htmlspecialchars($data['tenKho'] ?? 'Kho bảo trì') ?><?= !empty($data['diaChiKho']) ? ' (Địa điểm: ' . htmlspecialchars($data['diaChiKho']) . ')' : '' ?></p>
+                <p><strong>Ghi chú Nhập Kho:</strong> Nhập kho để tiến hành lưu trữ và thực hiện quy trình bảo hành/bảo trì.</p>
             <?php elseif ($type == 'baotri_xuat'): ?>
                 <p><strong>Lỗi cần xử lý:</strong> <?= nl2br(htmlspecialchars($data['moTaLoi'])) ?></p>
                 <p><strong>Hãng nhận bảo trì:</strong> <?= htmlspecialchars($data['tenHangSanXuat'] ?? 'Không xác định') ?></p>

@@ -45,13 +45,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
         echo json_encode(['found' => false, 'error' => 'Serial [' . $serial . '] không sẵn sàng (Trạng thái: ' . $row['trangThai'] . ')']);
         exit();
     }
+    $giaBan = (float)($row['giaBan'] ?? 0);
+    if ($giaBan <= 0) {
+        echo json_encode([
+            'found'      => false,
+            'isUnpriced' => true,
+            'error'      => 'Đàn vừa nhập kho chưa được Quản trị viên niêm yết giá bán. Không thể lập hóa đơn!',
+            'tenMau'     => $row['tenMau'],
+            'tenHang'    => $row['tenHang'] ?? ''
+        ]);
+        exit();
+    }
     echo json_encode([
         'found'    => true,
         'tenMau'   => $row['tenMau'],
         'tenLoai'  => $row['tenLoai'] ?? '',
         'tenHang'  => $row['tenHang'] ?? '',
-        'giaBan'   => (float)$row['giaBan'],
-        'giaBanFmt'=> number_format((float)$row['giaBan'], 0, ',', '.'),
+        'giaBan'   => $giaBan,
+        'giaBanFmt'=> number_format($giaBan, 0, ',', '.'),
     ]);
     exit();
 }
@@ -248,7 +259,7 @@ $history_result = $conn->query($sql_history);
         <div class="form-center-container">
             <div class="welcome-banner-sales">
                 <h1 style="margin: 0 0 8px 0; font-size: 1.6rem; color: var(--sales-text);">Lập Hóa Đơn Mới</h1>
-                <p style="margin: 0; opacity: 0.8; font-size: 14px;">Nhân viên thực hiện: <b style="color: white;"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b></p>
+                <p style="margin: 0; font-size: 14px; color: #334155; font-weight: 500;">Nhân viên thực hiện: <b style="color: #000000; font-weight: 700;"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin'); ?></b></p>
             </div>
 
             <?php echo $msg; ?>
@@ -315,23 +326,27 @@ $history_result = $conn->query($sql_history);
                 <div class="form-card">
                     <div class="card-title"><span class="material-symbols-rounded" style="color: var(--sales-text);">shopping_cart</span> 2. Chi tiết Sản phẩm <small style="font-size:12px; font-weight:400; opacity:0.6; margin-left:8px;">Giá bán tự động lấy từ hệ thống</small></div>
                     <div id="serial-container">
-                        <div class="serial-row-sales">
-                            <div>
-                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary);">Số Serial</label>
+                        <div class="serial-row-sales" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 16px; align-items: start; margin-bottom: 16px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--glass-border);">
+                            <div style="display: flex; flex-direction: column;">
+                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); line-height: 18px; height: 18px;">Số Serial</label>
                                 <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Nhập hoặc quét mã Serial..." required
-                                    onblur="lookupSerial(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupSerial(this);}">
-                                <div class="serial-info-badge"></div>
+                                    onblur="lookupSerial(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupSerial(this);}"
+                                    style="height: 46px; box-sizing: border-box;">
+                                <div class="serial-info-badge" style="margin-top: 8px; font-size: 12px; min-height: 20px; display: flex; align-items: center; gap: 6px;"></div>
                             </div>
-                            <div class="col-info">
-                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary);">Tên Mẫu Đàn</label>
-                                <div class="price-display empty" style="font-size:13px;">Chưa tra cứu Serial</div>
+                            <div class="col-info" style="display: flex; flex-direction: column;">
+                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); line-height: 18px; height: 18px;">Tên Mẫu Đàn</label>
+                                <div class="price-display empty" style="font-size: 13px; height: 46px; padding: 12px 16px; display: flex; align-items: center; box-sizing: border-box; border-radius: var(--radius-md);">Chưa tra cứu Serial</div>
                             </div>
-                            <div class="col-price">
-                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary);">Giá Niêm Yết (VNĐ)</label>
-                                <div class="price-display empty">-- Chưa có --</div>
+                            <div class="col-price" style="display: flex; flex-direction: column;">
+                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); line-height: 18px; height: 18px;">Giá Niêm Yết (VNĐ)</label>
+                                <div class="price-display empty" style="height: 46px; padding: 12px 16px; display: flex; align-items: center; box-sizing: border-box; border-radius: var(--radius-md);">-- Chưa có --</div>
                                 <input type="hidden" name="donGia[]" class="price-input" value="0">
                             </div>
-                            <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)" title="Xóa"><span class="material-symbols-rounded">delete</span></button>
+                            <div class="col-action" style="display: flex; flex-direction: column;">
+                                <label style="font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; visibility: hidden; line-height: 18px; height: 18px;">&nbsp;</label>
+                                <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)" title="Xóa" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);"><span class="material-symbols-rounded">delete</span></button>
+                            </div>
                         </div>
                     </div>
                     
@@ -435,7 +450,12 @@ async function lookupSerial(input) {
     row.className = 'serial-row-sales is-loading';
     badge.className = 'serial-info-badge loading';
     badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">autorenew</span> Đang tra cứu...';
-    displays.forEach(d => { d.className = 'price-display empty'; });
+    displays.forEach(d => { 
+        d.className = 'price-display empty'; 
+        d.style.color = '';
+        d.style.borderColor = '';
+        d.style.background = '';
+    });
     displays[0].textContent = 'Đang tải...';
     displays[1].textContent = '-- Đang tải --';
 
@@ -456,22 +476,43 @@ async function lookupSerial(input) {
             const tenDay = [data.tenHang, data.tenMau, data.tenLoai].filter(Boolean).join(' · ');
             displays[0].className = 'price-display';
             displays[0].textContent = tenDay || data.tenMau;
+            displays[0].style.color = '';
+            displays[0].style.borderColor = '';
+            displays[0].style.background = '';
 
             displays[1].className = 'price-display';
             displays[1].textContent = data.giaBanFmt + ' ₫';
+            displays[1].style.color = '';
+            displays[1].style.borderColor = '';
+            displays[1].style.background = '';
 
             hiddenPrice.value = data.giaBan;
             calculateTotal();
         } else {
-            // --- Lỗi: serial không hợp lệ ---
+            // --- Lỗi hoặc Chưa niêm yết giá: chặn không cho bán ---
             row.className = 'serial-row-sales is-error';
             badge.className = 'serial-info-badge error';
-            badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">error</span> ' + (data.error || 'Không tìm thấy');
 
-            displays[0].className = 'price-display empty';
-            displays[0].textContent = 'Không tìm thấy';
-            displays[1].className = 'price-display empty';
-            displays[1].textContent = '-- Lỗi --';
+            if (data.isUnpriced) {
+                badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px; color:#ef4444;">warning</span> Chưa niêm yết giá bán — Không thể lập hóa đơn!';
+                displays[0].className = 'price-display';
+                displays[0].style.color = 'var(--text-secondary)';
+                displays[0].style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                displays[0].style.background = 'rgba(239, 68, 68, 0.05)';
+                displays[0].textContent = (data.tenHang ? data.tenHang + ' · ' : '') + (data.tenMau || 'Đã tìm thấy mẫu');
+
+                displays[1].className = 'price-display';
+                displays[1].style.color = '#ef4444';
+                displays[1].style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                displays[1].style.background = 'rgba(239, 68, 68, 0.05)';
+                displays[1].textContent = 'Chưa niêm yết giá (0 ₫)';
+            } else {
+                badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">error</span> ' + (data.error || 'Không tìm thấy');
+                displays[0].className = 'price-display empty';
+                displays[0].textContent = 'Không tìm thấy';
+                displays[1].className = 'price-display empty';
+                displays[1].textContent = '-- Lỗi --';
+            }
             hiddenPrice.value = 0;
             calculateTotal();
         }
@@ -479,27 +520,34 @@ async function lookupSerial(input) {
         badge.className = 'serial-info-badge error';
         badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:14px;">wifi_off</span> Lỗi kết nối server';
         row.className = 'serial-row-sales is-error';
+        displays.forEach(d => { d.className = 'price-display empty'; });
+        hiddenPrice.value = 0;
+        calculateTotal();
     }
 }
 
 function getSerialRowTemplate() {
     return `
-        <div>
-            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);">Số Serial</label>
+        <div style="display: flex; flex-direction: column;">
+            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);line-height:18px;height:18px;">Số Serial</label>
             <input type="text" name="soSerial[]" class="custom-input serial-input" placeholder="Nhập hoặc quét mã Serial..." required
-                onblur="lookupSerial(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupSerial(this);}">
-            <div class="serial-info-badge"></div>
+                onblur="lookupSerial(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupSerial(this);}"
+                style="height: 46px; box-sizing: border-box;">
+            <div class="serial-info-badge" style="margin-top: 8px; font-size: 12px; min-height: 20px; display: flex; align-items: center; gap: 6px;"></div>
         </div>
-        <div class="col-info">
-            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);">Tên Mẫu Đàn</label>
-            <div class="price-display empty" style="font-size:13px;">Chưa tra cứu Serial</div>
+        <div class="col-info" style="display: flex; flex-direction: column;">
+            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);line-height:18px;height:18px;">Tên Mẫu Đàn</label>
+            <div class="price-display empty" style="font-size: 13px; height: 46px; padding: 12px 16px; display: flex; align-items: center; box-sizing: border-box; border-radius: var(--radius-md);">Chưa tra cứu Serial</div>
         </div>
-        <div class="col-price">
-            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);">Giá Niêm Yết (VNĐ)</label>
-            <div class="price-display empty">-- Chưa có --</div>
+        <div class="col-price" style="display: flex; flex-direction: column;">
+            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--text-secondary);line-height:18px;height:18px;">Giá Niêm Yết (VNĐ)</label>
+            <div class="price-display empty" style="height: 46px; padding: 12px 16px; display: flex; align-items: center; box-sizing: border-box; border-radius: var(--radius-md);">-- Chưa có --</div>
             <input type="hidden" name="donGia[]" class="price-input" value="0">
         </div>
-        <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)" title="Xóa"><span class="material-symbols-rounded">delete</span></button>
+        <div class="col-action" style="display: flex; flex-direction: column;">
+            <label style="font-weight:600;font-size:0.8rem;text-transform:uppercase;margin-bottom:8px;display:block;visibility:hidden;line-height:18px;height:18px;">&nbsp;</label>
+            <button type="button" class="btn-action btn-remove" onclick="removeSerialRow(this)" title="Xóa" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);"><span class="material-symbols-rounded">delete</span></button>
+        </div>
     `;
 }
 
@@ -507,6 +555,15 @@ function addSerialRow() {
     const container = document.getElementById('serial-container');
     const newRow = document.createElement('div');
     newRow.className = 'serial-row-sales';
+    newRow.style.display = 'grid';
+    newRow.style.gridTemplateColumns = '1.5fr 1fr 1fr auto';
+    newRow.style.gap = '16px';
+    newRow.style.alignItems = 'start';
+    newRow.style.marginBottom = '16px';
+    newRow.style.background = 'rgba(255,255,255,0.02)';
+    newRow.style.padding = '20px';
+    newRow.style.borderRadius = 'var(--radius-md)';
+    newRow.style.border = '1px solid var(--glass-border)';
     newRow.innerHTML = getSerialRowTemplate();
     container.appendChild(newRow);
     newRow.style.opacity = '0';
@@ -566,15 +623,42 @@ function submitForm() {
         alert('Vui lòng đợi hệ thống tra cứu Serial xong!');
         return;
     }
-    const validRows = document.querySelectorAll('.serial-row-sales.is-valid');
-    const allRows   = document.querySelectorAll('.serial-row-sales');
-    if (validRows.length === 0) {
+    
+    const allRows = document.querySelectorAll('.serial-row-sales');
+    let hasUnpriced = false;
+    let unpricedSerials = [];
+    let validCount = 0;
+    
+    allRows.forEach(r => {
+        const input = r.querySelector('.serial-input');
+        const priceInput = r.querySelector('.price-input');
+        const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+        const serialVal = input ? input.value.trim() : '';
+        if (serialVal !== '') {
+            if (price <= 0) {
+                hasUnpriced = true;
+                unpricedSerials.push(serialVal);
+            } else {
+                validCount++;
+            }
+        }
+    });
+    
+    if (hasUnpriced) {
+        alert('CẢNH BÁO: Cây đàn [' + unpricedSerials.join(', ') + '] chưa được Quản trị viên niêm yết giá bán (Giá: 0đ).\n\nKhông thể lập hóa đơn bán hàng cho sản phẩm chưa có giá niêm yết!');
+        return;
+    }
+    
+    if (errorRows.length > 0) {
+        alert('Có dòng Serial bị lỗi trong danh sách. Vui lòng kiểm tra lại hoặc xóa dòng lỗi trước khi lập hóa đơn!');
+        return;
+    }
+    
+    if (validCount === 0) {
         alert('Chưa có sản phẩm nào hợp lệ! Vui lòng nhập và tra cứu mã Serial.');
         return;
     }
-    if (errorRows.length > 0) {
-        if (!confirm('Có ' + errorRows.length + ' dòng Serial lỗi sẽ bị bỏ qua. Tiếp tục?')) return;
-    }
+    
     const form = document.getElementById('hoadonForm');
     if (form.reportValidity()) {
         if (confirm('Xác nhận tạo hóa đơn? Hóa đơn sẽ được lập luôn và chuyển cho Thủ kho làm phiếu xuất.')) {

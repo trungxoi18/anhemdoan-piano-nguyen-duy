@@ -844,15 +844,16 @@ tr:hover td { background: var(--bg-card-hover); }
 
 /* === PRODUCT ROWS === */
 .product-row { 
-    display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-end; 
+    display: grid; grid-template-columns: 1fr 1.3fr 180px auto; gap: 16px; margin-bottom: 16px; align-items: start; 
     background: var(--bg-tertiary); padding: 20px; 
     border-radius: var(--radius-md); border: 1px solid var(--border); 
     transition: all 0.3s ease; position: relative;
 }
 .product-row:hover { border-color: var(--accent); background: var(--bg-card); box-shadow: var(--shadow-sm); }
-.product-row > div { flex: 1; }
-.product-row .col-serial { flex: 1.3; }
-.product-row .col-price { max-width: 200px; }
+.product-row > div { display: flex; flex-direction: column; }
+.product-row .col-action { display: flex; flex-direction: column; }
+.product-row .custom-input, .product-row select.custom-input { height: 46px; box-sizing: border-box; }
+.product-row .btn-remove { height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md); }
 .row-number {
     position: absolute; top: -10px; left: -10px;
     width: 24px; height: 24px; border-radius: 50%;
@@ -868,6 +869,7 @@ tr:hover td { background: var(--bg-card-hover); }
 .product-row-label { 
     font-weight: 600; font-size: 0.75rem; text-transform: uppercase; 
     margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px;
+    height: 18px; line-height: 18px;
 }
 
 .serial-row { 
@@ -1108,7 +1110,7 @@ tr:hover td { background: var(--bg-card-hover); }
 .history-table tr:hover td { background: rgba(255,255,255,0.02); }
 
 .serial-row-sales { 
-    display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; 
+    display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 16px; margin-bottom: 16px; align-items: start; 
     background: rgba(255,255,255,0.02); padding: 20px; 
     border-radius: var(--radius-md); border: 1px solid var(--glass-border); 
     transition: 0.3s;
@@ -1117,9 +1119,10 @@ tr:hover td { background: var(--bg-card-hover); }
 .serial-row-sales.is-valid  { border-color: rgba(16, 185, 129, 0.4); background: rgba(16,185,129,0.04); }
 .serial-row-sales.is-error  { border-color: rgba(248, 113, 113, 0.4); background: rgba(248,113,113,0.04); }
 .serial-row-sales.is-loading { border-color: rgba(96,165,250,0.3); }
-.serial-row-sales > div { flex: 1; }
-.serial-row-sales .col-price { max-width: 260px; }
-.serial-row-sales .col-info  { max-width: 280px; }
+.serial-row-sales > div { display: flex; flex-direction: column; }
+.serial-row-sales label { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); line-height: 18px; height: 18px; }
+.serial-row-sales .custom-input { height: 46px; box-sizing: border-box; }
+.serial-row-sales .btn-remove { height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 
 .serial-info-badge {
     margin-top: 8px; font-size: 12px; min-height: 20px;
@@ -1131,15 +1134,18 @@ tr:hover td { background: var(--bg-card-hover); }
 .serial-info-badge.loading { color: var(--sales-text); animation: pulse 1s infinite; }
 
 .price-display {
-    width: 100%; padding: 14px 16px;
+    width: 100%; height: 46px; padding: 12px 16px;
     background: rgba(16, 185, 129, 0.08);
     border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: var(--radius-md);
     color: var(--success);
-    font-family: inherit; font-size: 15px; font-weight: 700;
+    font-family: inherit; font-size: 14px; font-weight: 700;
     letter-spacing: 0.5px;
     cursor: not-allowed;
     transition: 0.3s;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 .price-display.empty {
     background: rgba(0,0,0,0.15); border-color: var(--glass-border);

@@ -233,27 +233,30 @@ while($d = $maudans->fetch_assoc()) {
 
                     <div id="product-container">
                         <?php foreach($chitiets as $idx => $ct): ?>
-                        <div class="product-row" data-row="<?= $idx + 1 ?>">
+                        <div class="product-row" data-row="<?= $idx + 1 ?>" style="display: grid; grid-template-columns: 1fr 1.3fr 180px auto; gap: 16px; align-items: start; position: relative; background: var(--bg-tertiary); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 16px;">
                             <span class="row-number"><?= $idx + 1 ?></span>
-                            <div>
-                                <span class="product-row-label">Mẫu đàn (Model)</span>
-                                <select name="maMau[]" class="custom-input" required>
+                            <div style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Mẫu đàn (Model)</span>
+                                <select name="maMau[]" class="custom-input" required style="height: 46px; box-sizing: border-box;">
                                     <?php foreach($maudans_arr as $d): ?>
                                         <option value="<?= $d['maMau'] ?>" <?= $ct['maMau'] == $d['maMau'] ? 'selected' : '' ?>><?= htmlspecialchars($d['tenMau']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-serial">
-                                <span class="product-row-label">Số Serial</span>
-                                <input type="text" name="soSerial[]" class="custom-input serial-input" value="<?= htmlspecialchars($ct['soSerial']) ?>" required>
+                            <div class="col-serial" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Số Serial</span>
+                                <input type="text" name="soSerial[]" class="custom-input serial-input" value="<?= htmlspecialchars($ct['soSerial']) ?>" required style="height: 46px; box-sizing: border-box;">
                             </div>
-                            <div class="col-price">
-                                <span class="product-row-label">Giá nhập (VNĐ)</span>
-                                <input type="number" name="giaNhap[]" class="custom-input price-input" value="<?= $ct['giaNhap'] ?>" required oninput="updateSummary()">
+                            <div class="col-price" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Giá nhập (VNĐ)</span>
+                                <input type="number" name="giaNhap[]" class="custom-input price-input" value="<?= $ct['giaNhap'] ?>" required oninput="updateSummary()" style="height: 46px; box-sizing: border-box;">
                             </div>
-                            <button type="button" class="btn-action btn-remove" onclick="removeRow(this)">
-                                <span class="material-symbols-rounded">delete</span>
-                            </button>
+                            <div class="col-action" style="display: flex; flex-direction: column;">
+                                <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; visibility: hidden; height: 18px; line-height: 18px;">&nbsp;</span>
+                                <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);">
+                                    <span class="material-symbols-rounded">delete</span>
+                                </button>
+                            </div>
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -308,25 +311,39 @@ function addProductRow() {
     const newRow = document.createElement('div');
     newRow.className = 'product-row';
     newRow.setAttribute('data-row', rowCounter);
+    newRow.style.display = 'grid';
+    newRow.style.gridTemplateColumns = '1fr 1.3fr 180px auto';
+    newRow.style.gap = '16px';
+    newRow.style.alignItems = 'start';
+    newRow.style.position = 'relative';
+    newRow.style.background = 'var(--bg-tertiary)';
+    newRow.style.padding = '20px';
+    newRow.style.borderRadius = 'var(--radius-md)';
+    newRow.style.border = '1px solid var(--border)';
+    newRow.style.marginBottom = '16px';
+    
     newRow.innerHTML = `
         <span class="row-number">${rowCounter}</span>
-        <div>
-            <span class="product-row-label">Mẫu đàn (Model)</span>
-            <select name="maMau[]" class="custom-input" required>
+        <div style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Mẫu đàn (Model)</span>
+            <select name="maMau[]" class="custom-input" required style="height: 46px; box-sizing: border-box;">
                 ${options}
             </select>
         </div>
-        <div class="col-serial">
-            <span class="product-row-label">Số Serial</span>
-            <input type="text" name="soSerial[]" class="custom-input serial-input" required>
+        <div class="col-serial" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Số Serial</span>
+            <input type="text" name="soSerial[]" class="custom-input serial-input" required style="height: 46px; box-sizing: border-box;">
         </div>
-        <div class="col-price">
-            <span class="product-row-label">Giá nhập (VNĐ)</span>
-            <input type="number" name="giaNhap[]" class="custom-input price-input" value="0" required oninput="updateSummary()">
+        <div class="col-price" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; color: var(--text-secondary); letter-spacing: 0.5px; height: 18px; line-height: 18px;">Giá nhập (VNĐ)</span>
+            <input type="number" name="giaNhap[]" class="custom-input price-input" value="0" required oninput="updateSummary()" style="height: 46px; box-sizing: border-box;">
         </div>
-        <button type="button" class="btn-action btn-remove" onclick="removeRow(this)">
-            <span class="material-symbols-rounded">delete</span>
-        </button>
+        <div class="col-action" style="display: flex; flex-direction: column;">
+            <span class="product-row-label" style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px; display: block; visibility: hidden; height: 18px; line-height: 18px;">&nbsp;</span>
+            <button type="button" class="btn-action btn-remove" onclick="removeRow(this)" style="height: 46px; width: 46px; min-width: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: var(--radius-md);">
+                <span class="material-symbols-rounded">delete</span>
+            </button>
+        </div>
     `;
     container.appendChild(newRow);
     updateSummary();

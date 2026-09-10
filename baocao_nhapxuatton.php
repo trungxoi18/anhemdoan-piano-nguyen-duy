@@ -30,6 +30,11 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
     $endDate = $end_of_month;
 }
+if ($startDate > $endDate) {
+    $tmp = $startDate;
+    $startDate = $endDate;
+    $endDate = $tmp;
+}
 
 $startDate = $conn->real_escape_string($startDate);
 $endDate = $conn->real_escape_string($endDate);
@@ -199,6 +204,28 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+.btn-date-preset {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+.btn-date-preset:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+}
+</style>
 
 <div class="main-wrapper">
     <?php include 'includes/topbar.php'; ?>
@@ -209,36 +236,61 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                 <span class="material-symbols-rounded" style="color: var(--accent); font-size: 32px;">analytics</span> 
                 Báo Cáo Tồn Kho
             </h2>
-            <div class="btn-action-group">
+            <div class="btn-action-group" style="display: flex; gap: 10px;">
+                <a href="xuat_pdf.php?type=baocao_nhapxuatton&tu_ngay=<?= urlencode($startDate) ?>&den_ngay=<?= urlencode($endDate) ?>&ma_kho=<?= $maKhoFilter ?>&search=<?= urlencode($search) ?>" target="_blank" class="btn-custom" style="background: linear-gradient(135deg, #ec4899, #f43f5e); color: white; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);">
+                    <span class="material-symbols-rounded">print</span> In Báo Cáo PDF
+                </a>
                 <a href="?<?= $_SERVER['QUERY_STRING'] ?>&export=csv" class="btn-custom btn-export-csv">
                     <span class="material-symbols-rounded">download</span> Xuất CSV
                 </a>
             </div>
         </div>
 
-        <form method="GET" class="filter-card">
-            <div class="filter-group">
-                <label>Từ ngày</label>
-                <input type="date" name="tu_ngay" class="filter-input" value="<?= $startDate ?>" max="<?= $endDate ?>">
+        <form method="GET" class="filter-card" id="filterForm" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+                <div class="filter-group">
+                    <label>Từ ngày</label>
+                    <input type="date" name="tu_ngay" id="tu_ngay" class="filter-input" value="<?= $startDate ?>">
+                </div>
+                <div class="filter-group">
+                    <label>Đến ngày</label>
+                    <input type="date" name="den_ngay" id="den_ngay" class="filter-input" value="<?= $endDate ?>">
+                </div>
+                <div class="filter-group">
+                    <label>Kho hàng</label>
+                    <select name="ma_kho" class="filter-input">
+                        <option value="0">-- Tất cả Kho --</option>
+                        <?php 
+                        $khos->data_seek(0);
+                        while($k = $khos->fetch_assoc()): ?>
+                            <option value="<?= $k['maKho'] ?>" <?= $maKhoFilter == $k['maKho'] ? 'selected' : '' ?>><?= htmlspecialchars($k['tenKho']) ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex: 1; min-width: 200px;">
+                    <label>Tìm kiếm sản phẩm</label>
+                    <input type="text" name="search" class="filter-input" placeholder="Tên sản phẩm..." value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn-custom btn-filter"><span class="material-symbols-rounded">filter_list</span> Lọc dữ liệu</button>
+                    <a href="baocao_nhapxuatton.php" class="btn-custom" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary); text-decoration: none; padding: 10px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;" title="Đặt lại về tháng hiện tại">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">restart_alt</span>
+                    </a>
+                </div>
             </div>
-            <div class="filter-group">
-                <label>Đến ngày</label>
-                <input type="date" name="den_ngay" class="filter-input" value="<?= $endDate ?>" min="<?= $startDate ?>">
+
+            <!-- Nút chọn nhanh khoảng thời gian -->
+            <div style="display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1); flex-wrap: wrap;">
+                <span style="font-size: 12.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+                    <span class="material-symbols-rounded" style="font-size: 16px;">calendar_month</span> Chọn nhanh:
+                </span>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('today')">Hôm nay</button>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('this_month')">Tháng này</button>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('last_month')">Tháng trước</button>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('last_30_days')">30 ngày qua</button>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('this_quarter')">Quý này</button>
+                <button type="button" class="btn-date-preset" onclick="setDatePreset('this_year')">Năm nay</button>
             </div>
-            <div class="filter-group">
-                <label>Kho hàng</label>
-                <select name="ma_kho" class="filter-input">
-                    <option value="0">-- Tất cả Kho --</option>
-                    <?php while($k = $khos->fetch_assoc()): ?>
-                        <option value="<?= $k['maKho'] ?>" <?= $maKhoFilter == $k['maKho'] ? 'selected' : '' ?>><?= $k['tenKho'] ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Tìm kiếm sản phẩm</label>
-                <input type="text" name="search" class="filter-input" placeholder="Tên sản phẩm..." value="<?= htmlspecialchars($search) ?>">
-            </div>
-            <button type="submit" class="btn-custom btn-filter"><span class="material-symbols-rounded">filter_list</span> Lọc dữ liệu</button>
         </form>
 
         <div class="summary-cards">
@@ -415,6 +467,50 @@ if (brandLabels.length > 0) {
     });
 } else {
     document.getElementById('pieChart').parentElement.innerHTML += '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text-muted);">Không có tồn kho</div>';
+}
+
+// Hàm chọn nhanh khoảng thời gian lọc
+function setDatePreset(type) {
+    const today = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    const formatDate = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    if (type === 'today') {
+        start = today;
+        end = today;
+    } else if (type === 'this_month') {
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (type === 'last_month') {
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (type === 'last_30_days') {
+        start = new Date();
+        start.setDate(today.getDate() - 30);
+        end = today;
+    } else if (type === 'this_quarter') {
+        const quarter = Math.floor(today.getMonth() / 3);
+        start = new Date(today.getFullYear(), quarter * 3, 1);
+        end = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+    } else if (type === 'this_year') {
+        start = new Date(today.getFullYear(), 0, 1);
+        end = new Date(today.getFullYear(), 11, 31);
+    }
+
+    const tuNgayInput = document.getElementById('tu_ngay');
+    const denNgayInput = document.getElementById('den_ngay');
+    if (tuNgayInput && denNgayInput) {
+        tuNgayInput.value = formatDate(start);
+        denNgayInput.value = formatDate(end);
+        document.getElementById('filterForm').submit();
+    }
 }
 </script>
 

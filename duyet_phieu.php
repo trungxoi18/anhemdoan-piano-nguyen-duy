@@ -51,13 +51,13 @@ $title = 'Phê Duyệt Phiếu';
                 <?php echo $msg; ?>
 
                 <div class="nav-tabs">
-                    <button class="nav-tab active" onclick="switchTab('nhap')">
+                    <button class="nav-tab active" data-tab="nhap" onclick="switchTab('nhap', this)">
                         Phiếu Nhập Chờ Duyệt <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $pn_list->num_rows ?></span>
                     </button>
-                    <button class="nav-tab" onclick="switchTab('xuat')">
+                    <button class="nav-tab" data-tab="xuat" onclick="switchTab('xuat', this)">
                         Phiếu Xuất Chờ Duyệt <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $px_list->num_rows ?></span>
                     </button>
-                    <button class="nav-tab" onclick="switchTab('dieuchuyen')">
+                    <button class="nav-tab" data-tab="dieuchuyen" onclick="switchTab('dieuchuyen', this)">
                         Phiếu Điều Chuyển <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;"><?= $dc_list->num_rows ?></span>
                     </button>
                 </div>
@@ -200,12 +200,23 @@ $title = 'Phê Duyệt Phiếu';
 </div>
 
 <script>
-        function switchTab(tabId) {
+        function switchTab(tabId, el) {
             document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(content => content.classList.remove('active'));
             
-            event.currentTarget.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
+            const btn = el || document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+            if (btn) btn.classList.add('active');
+            
+            const pane = document.getElementById('tab-' + tabId);
+            if (pane) pane.classList.add('active');
         }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab && document.getElementById('tab-' + tab)) {
+                switchTab(tab);
+            }
+        });
 </script>
 <?php include 'includes/footer.php'; ?>

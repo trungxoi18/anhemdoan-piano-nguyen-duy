@@ -37,10 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $stmt2->execute();
             
             $conn->commit();
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã phê duyệt tài khoản!</div>";
+            $_SESSION['flash_success'] = "Đã phê duyệt tài khoản!";
         } catch (Exception $e) {
             $conn->rollback();
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . htmlspecialchars($e->getMessage());
         }
     } elseif ($action == 'reject') {
         $maTaiKhoan = intval($_POST['maTaiKhoan']);
@@ -57,10 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $stmt2->execute();
             
             $conn->commit();
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã từ chối tài khoản đăng ký!</div>";
+            $_SESSION['flash_success'] = "Đã từ chối tài khoản đăng ký!";
         } catch (Exception $e) {
             $conn->rollback();
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . htmlspecialchars($e->getMessage());
         }
     } elseif ($action == 'update_role') {
         $maTaiKhoan = intval($_POST['maTaiKhoan']);
@@ -77,9 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $stmt_nv->bind_param("si", $nvStatus, $maTaiKhoan);
             $stmt_nv->execute();
             
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Cập nhật tài khoản thành công!</div>";
+            $_SESSION['flash_success'] = "Cập nhật tài khoản thành công!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($stmt->error ?: $conn->error) . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . htmlspecialchars($stmt->error ?: $conn->error);
         }
     } elseif ($action == 'add_account') {
         $hoTen = trim($_POST['hoTen']);
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $result_check = $stmt_check->get_result()->fetch_assoc();
         
         if ($result_check['count_user'] > 0) {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Tên đăng nhập đã tồn tại!</div>";
+            $_SESSION['flash_error'] = "Tên đăng nhập đã tồn tại!";
         } else {
             $conn->begin_transaction();
             try {
@@ -109,13 +109,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 $stmt_tk->execute();
                 
                 $conn->commit();
-                $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã tạo tài khoản thành công!</div>";
+                $_SESSION['flash_success'] = "Đã tạo tài khoản thành công!";
             } catch (Exception $e) {
                 $conn->rollback();
-                $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . htmlspecialchars($e->getMessage()) . "</div>";
+                $_SESSION['flash_error'] = "Lỗi: " . htmlspecialchars($e->getMessage());
             }
         }
     }
+
+    header("Location: quanly_taikhoan.php");
+    exit();
+}
+
+$msg = "";
+if (isset($_SESSION['flash_success'])) {
+    $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> " . htmlspecialchars($_SESSION['flash_success']) . "</div>";
+    unset($_SESSION['flash_success']);
+}
+if (isset($_SESSION['flash_error'])) {
+    $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> " . htmlspecialchars($_SESSION['flash_error']) . "</div>";
+    unset($_SESSION['flash_error']);
 }
 
 $sql_pending = "SELECT tk.MaTaiKhoan, tk.TenDangNhap, tk.NgayTao, nv.MaNhanVien, nv.HoTen, nv.SoDienThoai, nv.EmailNV

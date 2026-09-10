@@ -30,9 +30,9 @@ if ($is_admin && $_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ss", $tenCS, $noiDung);
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Thêm chính sách bảo hành thành công!</div>";
+            $_SESSION['flash_success'] = "Thêm chính sách bảo hành thành công!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . $conn->error;
         }
     }
     
@@ -46,9 +46,9 @@ if ($is_admin && $_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("ssi", $tenCS, $noiDung, $maCS);
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Cập nhật chính sách thành công!</div>";
+            $_SESSION['flash_success'] = "Cập nhật chính sách thành công!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . $conn->error;
         }
     }
 
@@ -60,11 +60,24 @@ if ($is_admin && $_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bind_param("i", $maCS);
         
         if ($stmt->execute()) {
-            $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> Đã xóa chính sách!</div>";
+            $_SESSION['flash_success'] = "Đã xóa chính sách!";
         } else {
-            $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> Lỗi: " . $conn->error . "</div>";
+            $_SESSION['flash_error'] = "Lỗi: " . $conn->error;
         }
     }
+
+    header("Location: cs_baohanh.php");
+    exit();
+}
+
+$msg = "";
+if (isset($_SESSION['flash_success'])) {
+    $msg = "<div class='alert-msg alert-success'><span class='material-symbols-rounded'>check_circle</span> " . htmlspecialchars($_SESSION['flash_success']) . "</div>";
+    unset($_SESSION['flash_success']);
+}
+if (isset($_SESSION['flash_error'])) {
+    $msg = "<div class='alert-msg alert-error'><span class='material-symbols-rounded'>error</span> " . htmlspecialchars($_SESSION['flash_error']) . "</div>";
+    unset($_SESSION['flash_error']);
 }
 
 // Lấy danh sách chính sách

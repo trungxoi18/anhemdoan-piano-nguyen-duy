@@ -305,7 +305,7 @@ if ($res_policies) {
                         </span>
                     </div>
                 </div>
-                <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2);">
+                <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2); cursor: pointer;" onclick="window.location.href='duyet_phieu.php'">
                     <div class="premium-kpi-icon">
                         <span class="material-symbols-rounded">pending_actions</span>
                     </div>
@@ -374,51 +374,89 @@ if ($res_policies) {
                 <!-- Widgets Việc cần làm -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                     <?php if ($role_id == 1): ?>
-                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(139,92,246,0.1);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--accent-secondary, #8b5cf6); font-weight: 600;">
-                            <span class="material-symbols-rounded">fact_check</span> Chứng từ chờ duyệt
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(139,92,246,0.15); display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                                <a href="duyet_phieu.php" style="display: flex; align-items: center; gap: 8px; color: var(--accent-secondary, #8b5cf6); font-weight: 600; text-decoration: none; font-size: 15px;">
+                                    <span class="material-symbols-rounded">fact_check</span> Chứng từ chờ duyệt
+                                </a>
+                                <a href="duyet_phieu.php" style="color: var(--accent-secondary, #8b5cf6); font-size: 12px; font-weight: 600; text-decoration: none; padding: 2px 8px; border-radius: 6px; background: rgba(139,92,246,0.08); transition: background 0.2s;" onmouseover="this.style.background='rgba(139,92,246,0.18)'" onmouseout="this.style.background='rgba(139,92,246,0.08)'">
+                                    Tất cả &rarr;
+                                </a>
+                            </div>
+                            <?php if (count($list_cho_duyet) == 0): ?>
+                                <a href="duyet_phieu.php" style="text-decoration: none; display: block; padding: 12px; border-radius: 8px; background: rgba(139,92,246,0.03); border: 1px dashed rgba(139,92,246,0.2); text-align: center; color: var(--text-muted); font-size: 13px;">
+                                    <span class="material-symbols-rounded" style="font-size: 20px; display: block; margin-bottom: 4px; color: #10b981;">task_alt</span>
+                                    Không có chứng từ nào chờ duyệt.
+                                </a>
+                            <?php else: ?>
+                                <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                    <?php foreach($list_cho_duyet as $cd): 
+                                        $target_tab = 'duyet_phieu.php';
+                                        if ($cd['loai'] == 'Phiếu nhập') $target_tab = 'duyet_phieu.php?tab=nhap';
+                                        elseif ($cd['loai'] == 'Phiếu xuất') $target_tab = 'duyet_phieu.php?tab=xuat';
+                                        elseif ($cd['loai'] == 'Phiếu điều chuyển') $target_tab = 'duyet_phieu.php?tab=dieuchuyen';
+                                    ?>
+                                        <li>
+                                            <a href="<?= $target_tab ?>" style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: inherit; background: rgba(139,92,246,0.03); border: 1px solid rgba(139,92,246,0.08); transition: all 0.2s ease; cursor: pointer;" onmouseover="this.style.background='rgba(139,92,246,0.12)'; this.style.borderColor='rgba(139,92,246,0.3)'; this.style.transform='translateX(3px)';" onmouseout="this.style.background='rgba(139,92,246,0.03)'; this.style.borderColor='rgba(139,92,246,0.08)'; this.style.transform='translateX(0)';">
+                                                <span style="color: var(--text-primary); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                                    <span class="material-symbols-rounded" style="font-size: 16px; color: var(--accent-secondary, #8b5cf6);">description</span>
+                                                    <?= htmlspecialchars($cd['loai']) ?> #<?= htmlspecialchars($cd['id']) ?>
+                                                </span>
+                                                <span style="color: #ef4444; font-weight: 600; padding: 3px 8px; background: rgba(239,68,68,0.1); border-radius: 4px; font-size: 12px; display: inline-flex; align-items: center; gap: 2px;">
+                                                    Duyệt
+                                                    <span class="material-symbols-rounded" style="font-size: 14px;">arrow_forward</span>
+                                                </span>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                         </div>
-                        <?php if (count($list_cho_duyet) == 0): ?>
-                            <div style="font-size: 14px; color: var(--text-muted);">Không có chứng từ nào chờ duyệt.</div>
-                        <?php else: ?>
-                            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                                <?php foreach($list_cho_duyet as $cd): ?>
-                                    <li style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
-                                        <span style="color: var(--text-secondary);"><?= $cd['loai'] ?> #<?= $cd['id'] ?></span>
-                                        <a href="duyet_phieu.php" style="color: #ef4444; font-weight: 600; text-decoration: none; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px;">Duyệt</a>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
                     <?php if ($role_id == 2): ?>
-                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(239,68,68,0.1);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #ef4444; font-weight: 600;">
-                            <span class="material-symbols-rounded">local_shipping</span> Hóa đơn chờ xuất kho
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(239,68,68,0.15); display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                                <a href="phieuxuat.php" style="display: flex; align-items: center; gap: 8px; color: #ef4444; font-weight: 600; text-decoration: none; font-size: 15px;">
+                                    <span class="material-symbols-rounded">local_shipping</span> Hóa đơn chờ xuất kho
+                                </a>
+                                <a href="phieuxuat.php" style="color: #ef4444; font-size: 12px; font-weight: 600; text-decoration: none; padding: 2px 8px; border-radius: 6px; background: rgba(239,68,68,0.08); transition: background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.18)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">
+                                    Tất cả &rarr;
+                                </a>
+                            </div>
+                            <?php if (count($list_hoadon_cho) == 0): ?>
+                                <a href="phieuxuat.php" style="text-decoration: none; display: block; padding: 12px; border-radius: 8px; background: rgba(239,68,68,0.03); border: 1px dashed rgba(239,68,68,0.2); text-align: center; color: var(--text-muted); font-size: 13px;">
+                                    <span class="material-symbols-rounded" style="font-size: 20px; display: block; margin-bottom: 4px; color: #10b981;">task_alt</span>
+                                    Tất cả hóa đơn đã xuất.
+                                </a>
+                            <?php else: ?>
+                                <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                                    <?php foreach($list_hoadon_cho as $hc): ?>
+                                        <li>
+                                            <a href="phieuxuat.php" style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: inherit; background: rgba(239,68,68,0.03); border: 1px solid rgba(239,68,68,0.08); transition: all 0.2s ease; cursor: pointer;" onmouseover="this.style.background='rgba(239,68,68,0.12)'; this.style.borderColor='rgba(239,68,68,0.3)'; this.style.transform='translateX(3px)';" onmouseout="this.style.background='rgba(239,68,68,0.03)'; this.style.borderColor='rgba(239,68,68,0.08)'; this.style.transform='translateX(0)';">
+                                                <span style="color: var(--text-primary); font-weight: 500;">HĐ #<?= $hc['maHoaDon'] ?></span>
+                                                <span style="color: #ef4444; font-weight: 600; padding: 3px 8px; background: rgba(239,68,68,0.1); border-radius: 4px; font-size: 12px; display: inline-flex; align-items: center; gap: 2px;">
+                                                    Xuất ngay
+                                                    <span class="material-symbols-rounded" style="font-size: 14px;">arrow_forward</span>
+                                                </span>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                         </div>
-                        <?php if (count($list_hoadon_cho) == 0): ?>
-                            <div style="font-size: 14px; color: var(--text-muted);">Tất cả hóa đơn đã xuất.</div>
-                        <?php else: ?>
-                            <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                                <?php foreach($list_hoadon_cho as $hc): ?>
-                                    <li style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
-                                        <span style="color: var(--text-secondary);">HĐ #<?= $hc['maHoaDon'] ?></span>
-                                        <a href="phieuxuat.php" style="color: #ef4444; font-weight: 600; text-decoration: none; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px;">Xuất ngay</a>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
-                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(245,158,11,0.1);">
+                    <div style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(245,158,11,0.15); cursor: pointer; transition: all 0.2s ease;" onclick="window.location.href='tonkho_hientai.php'" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px -2px rgba(245,158,11,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)';">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #f59e0b; font-weight: 600;">
                             <span class="material-symbols-rounded">warning</span> Sản phẩm sắp hết
                         </div>
                         <div style="font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px;"><?= $sap_het ?> <span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">màu đàn ≤ 5 cây</span></div>
-                        <a href="tonkho_hientai.php" style="color: #f59e0b; font-size: 14px; text-decoration: none; font-weight: 500;">Xem chi tiết &rarr;</a>
+                        <a href="tonkho_hientai.php" style="color: #f59e0b; font-size: 13px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">Xem chi tiết &rarr;</a>
                     </div>
                 </div>
 
