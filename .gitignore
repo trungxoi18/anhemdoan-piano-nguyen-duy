@@ -9,6 +9,7 @@ Thumbs.db
 Desktop.ini
 *.exe
 ngrok.exe
+*.zip
 
 # Cấu hình AI
 .gemini/
