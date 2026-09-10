@@ -4,10 +4,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$host = "localhost";
-$username = "root"; 
-$password = "";   
-$database = "quanlybandan"; // Viết hoa đúng với tên CSDL bạn vừa chạy trong phpMyAdmin
+// Tự động nhận diện môi trường: Localhost (XAMPP) hay Hosting Online (InfinityFree)
+if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] === 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false)) {
+    // Cấu hình máy tính cá nhân (XAMPP)
+    $host = "localhost";
+    $username = "root"; 
+    $password = "";   
+    $database = "quanlybandan";
+} else {
+    // Cấu hình Hosting InfinityFree
+    $host = "sql103.infinityfree.com";
+    $username = "if0_42879752"; 
+    $password = "pianonguyenduy1";   
+    $database = "if0_42879752_quanlybandan";
+}
 
 // 2. Kích hoạt chế độ báo lỗi Exception cho MySQLi để dễ debug
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
