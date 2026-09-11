@@ -324,7 +324,7 @@ function sendQuickMessage(text) {
 // Hàm gửi tin nhắn chính
 function sendAIMessage() {
     const input = document.getElementById('ai-chat-input');
-    const message = input.value.trim();
+    const message = input.value.trim();z
     if (!message) return;
 
     const chatBody = document.getElementById('ai-chat-body');
@@ -351,28 +351,28 @@ function sendAIMessage() {
     scrollToBottom();
 
     // 3. Gọi backend xử lý chat bằng FormData chuẩn (tránh tường lửa ModSecurity 403 Forbidden)
+    // 3. Gọi backend xử lý chat
     const formData = new FormData();
     formData.append('noidung_chat', message);
 
     fetch('api_chat.php', {
         method: 'POST',
+        credentials: 'same-origin', // Bắt buộc đối với host .gt.tc để gửi cookie xác thực
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: formData
     })
     .then(async res => {
-        const text = await res.text();
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error("Non-JSON API response:", text);
-            return { reply: "Phản hồi máy chủ: " + (text.length > 100 ? text.substring(0, 100) + '...' : text) };
+        if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
         }
+        return res.json();
     })
     .then(data => {
-        // Xóa bong bóng loading
         const loadingElem = document.getElementById(loadingId);
         if (loadingElem) loadingElem.remove();
 
-        // Hiển thị câu trả lời từ AI
         const replyText = data.reply || "Hệ thống bận, vui lòng thử lại sau.";
         const botMsgHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">${formatReply(replyText)}</div></div>`;
         chatBody.insertAdjacentHTML('beforeend', botMsgHTML);
@@ -382,7 +382,7 @@ function sendAIMessage() {
         const loadingElem = document.getElementById(loadingId);
         if (loadingElem) loadingElem.remove();
 
-        const errorHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">Lỗi kết nối mạng hoặc máy chủ.</div></div>`;
+        const errorHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">Lỗi kết nối máy chủ (${err.message}). Vui lòng tải lại trang.</div></div>`;
         chatBody.insertAdjacentHTML('beforeend', errorHTML);
         scrollToBottom();
     });

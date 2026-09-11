@@ -86,25 +86,25 @@ if ($hasValidApiKey) {
     ]);
 
     if (function_exists('curl_init')) {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Giảm timeout xuống 5s để tránh treo host
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+            $response = @curl_exec($ch); // Thêm @ để ẩn warning cURL của host
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-        if ($httpCode === 200 && $response) {
-            $resData = json_decode($response, true);
-            if (!empty($resData['candidates'][0]['content']['parts'][0]['text'])) {
-                sendResponse(trim($resData['candidates'][0]['content']['parts'][0]['text']));
+            if ($httpCode === 200 && $response) {
+                $resData = json_decode($response, true);
+                if (!empty($resData['candidates'][0]['content']['parts'][0]['text'])) {
+                    sendResponse(trim($resData['candidates'][0]['content']['parts'][0]['text']));
+                }
             }
         }
-    }
 }
 
 // 4. CHẾ ĐỘ TRỢ LÝ THÔNG MINH NỘI BỘ (Smart Local Assistant - Hoạt động trực tiếp với Database)
