@@ -1,14 +1,11 @@
 <!-- CHATBOT WIDGET FOR PIANO STORE -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Nút mở Chatbot -->
-<button id="ai-chat-toggle" onclick="toggleAIChat()" title="Tư vấn AI">
+<button type="button" id="ai-chat-toggle" onclick="toggleAIChat()" title="Tư vấn AI">
     <i class="fa-solid fa-headset"></i>
 </button>
 
-<!-- Khung Popup Chatbot -->
 <div id="ai-chat-box" class="ai-chat-hidden">
-    <!-- Header -->
     <div class="ai-chat-header">
         <div class="ai-chat-avatar">
             <i class="fa-solid fa-robot"></i>
@@ -17,10 +14,9 @@
             <h4>Trợ Lý AI Kho Đàn</h4>
             <span class="ai-status"><span class="status-dot"></span> Sẵn sàng tư vấn</span>
         </div>
-        <button class="ai-chat-close" onclick="toggleAIChat()"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" class="ai-chat-close" onclick="toggleAIChat()"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <!-- Nội dung trò chuyện -->
     <div class="ai-chat-body" id="ai-chat-body">
         <div class="ai-msg ai-msg-bot">
             <div class="msg-content">
@@ -28,25 +24,22 @@
             </div>
         </div>
         
-        <!-- Các câu hỏi gợi ý nhanh -->
         <div class="ai-suggestions" id="ai-suggestions">
+            <div class="suggestion-tag" onclick="sendQuickMessage('Trong kho có những mẫu đàn nào?')">📦 Mẫu đàn trong kho</div>
             <div class="suggestion-tag" onclick="sendQuickMessage('Có những mẫu Grand Piano nào?')">🎹 Grand Piano</div>
             <div class="suggestion-tag" onclick="sendQuickMessage('Tư vấn đàn dưới 50 triệu')">💰 Đàn dưới 50 triệu</div>
-            <div class="suggestion-tag" onclick="sendQuickMessage('Giá đàn Kawai K-300 bao nhiêu?')">🏷️ Kawai K-300</div>
         </div>
     </div>
 
-    <!-- Khung nhập tin nhắn -->
     <div class="ai-chat-footer">
         <input type="text" id="ai-chat-input" placeholder="Nhập câu hỏi về đàn piano..." onkeypress="handleKeyPress(event)">
-        <button id="ai-chat-send" onclick="sendAIMessage()">
+        <button type="button" id="ai-chat-send" onclick="sendAIMessage()">
             <i class="fa-solid fa-paper-plane"></i>
         </button>
     </div>
 </div>
 
 <style>
-/* 1. NÚT MỞ POPUP */
 #ai-chat-toggle {
     position: fixed;
     bottom: 25px;
@@ -68,7 +61,6 @@
     box-shadow: 0 12px 30px rgba(30, 60, 114, 0.6);
 }
 
-/* 2. KHUNG CHAT POPUP */
 #ai-chat-box {
     position: fixed;
     bottom: 95px;
@@ -93,7 +85,6 @@
     pointer-events: none;
 }
 
-/* HEADER */
 .ai-chat-header {
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     color: white;
@@ -144,7 +135,6 @@
 }
 .ai-chat-close:hover { opacity: 1; transform: scale(1.1); }
 
-/* BODY */
 .ai-chat-body {
     flex: 1;
     padding: 16px;
@@ -157,7 +147,6 @@
 .ai-chat-body::-webkit-scrollbar { width: 5px; }
 .ai-chat-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 5px; }
 
-/* BONG BÓNG TIN NHẮN */
 .ai-msg { display: flex; flex-direction: column; max-width: 82%; }
 .ai-msg-bot { align-self: flex-start; }
 .ai-msg-user { align-self: flex-end; }
@@ -181,7 +170,6 @@
     border-bottom-right-radius: 4px;
 }
 
-/* CHIPS GỢI Ý */
 .ai-suggestions {
     display: flex;
     flex-wrap: wrap;
@@ -205,7 +193,6 @@
     border-color: #1e3c72;
 }
 
-/* TYPING INDICATOR (ANIMATION) */
 .typing-dots {
     display: flex;
     gap: 4px;
@@ -226,7 +213,6 @@
     40% { transform: scale(1); }
 }
 
-/* FOOTER (INPUT) */
 .ai-chat-footer {
     padding: 12px 16px;
     background: white;
@@ -260,7 +246,6 @@
 }
 #ai-chat-send:hover { background: #1e3c72; transform: scale(1.05); }
 
-/* RESPONSIVE CHO ĐIỆN THOẠI DI ĐỘNG */
 @media (max-width: 576px) {
     #ai-chat-toggle {
         bottom: 16px;
@@ -268,141 +253,92 @@
         width: 50px;
         height: 50px;
         font-size: 20px;
-        box-shadow: 0 4px 16px rgba(30, 60, 114, 0.4);
     }
     #ai-chat-box {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        max-width: 100vw;
-        max-height: 100vh;
-        max-height: 100dvh;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh; height: 100dvh;
+        max-width: 100vw; max-height: 100vh;
         border-radius: 0;
-        z-index: 10000;
     }
-    .ai-chat-header {
-        padding: 14px 16px;
-    }
-    .ai-chat-body {
-        padding: 12px;
-    }
-    .ai-chat-footer {
-        padding: 10px 12px;
-    }
-    #ai-chat-input {
-        font-size: 16px; /* Ngăn tự zoom trên iOS */
-    }
+    #ai-chat-input { font-size: 16px; }
 }
+
+button:disabled { opacity: .55; cursor: wait; }
+#ai-chat-body { min-height: 0; }
 </style>
 
 <script>
-// Mở/Đóng Popup Chat
-function toggleAIChat() {
-    const box = document.getElementById('ai-chat-box');
-    box.classList.toggle('ai-chat-hidden');
-    if (!box.classList.contains('ai-chat-hidden')) {
-        document.getElementById('ai-chat-input').focus();
+(() => {
+    const ui = {input:'ai-chat-input',body:'ai-chat-body',send:'ai-chat-send',wrap:'ai-msg',user:'ai-msg-user',bot:'ai-msg-bot',content:'msg-content'};
+    const input = document.getElementById(ui.input);
+    const body = document.getElementById(ui.body);
+    const sendButton = document.getElementById(ui.send) || document.querySelector('.btn-send');
+    let busy = false;
+    // Một ID riêng cho mỗi lần mở trang: nội dung nhìn thấy khớp ngữ cảnh máy chủ.
+    const random = new Uint32Array(4);
+    crypto.getRandomValues(random);
+    const conversationId = Array.from(random, n => n.toString(16)).join('-');
+    input.maxLength = 3000;
+    body.setAttribute('aria-live', 'polite');
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     }
-}
-
-// Bắt sự kiện phím Enter
-function handleKeyPress(e) {
-    if (e.key === 'Enter') sendAIMessage();
-}
-
-// Gửi câu hỏi nhanh từ Chips
-function sendQuickMessage(text) {
-    document.getElementById('ai-chat-input').value = text;
-    sendAIMessage();
-}
-
-// Hàm gửi tin nhắn chính
-function sendAIMessage() {
-    const input = document.getElementById('ai-chat-input');
-    const message = input.value.trim();z
-    if (!message) return;
-
-    const chatBody = document.getElementById('ai-chat-body');
-
-    // Ẩn thanh gợi ý sau lần gửi đầu tiên
-    const suggestions = document.getElementById('ai-suggestions');
-    if (suggestions) suggestions.style.display = 'none';
-
-    // 1. Hiển thị tin nhắn người dùng
-    const userMsgHTML = `<div class="ai-msg ai-msg-user"><div class="msg-content">${escapeHTML(message)}</div></div>`;
-    chatBody.insertAdjacentHTML('beforeend', userMsgHTML);
-    input.value = '';
-    scrollToBottom();
-
-    // 2. Hiển thị trạng thái "AI đang gõ..."
-    const loadingId = 'loading-' + Date.now();
-    const loadingHTML = `
-        <div class="ai-msg ai-msg-bot" id="${loadingId}">
-            <div class="msg-content">
-                <div class="typing-dots"><span></span><span></span><span></span></div>
-            </div>
-        </div>`;
-    chatBody.insertAdjacentHTML('beforeend', loadingHTML);
-    scrollToBottom();
-
-    // 3. Gọi backend xử lý chat bằng FormData chuẩn (tránh tường lửa ModSecurity 403 Forbidden)
-    // 3. Gọi backend xử lý chat
-    const formData = new FormData();
-    formData.append('noidung_chat', message);
-
-    fetch('api_chat.php', {
-        method: 'POST',
-        credentials: 'same-origin', // Bắt buộc đối với host .gt.tc để gửi cookie xác thực
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-    })
-    .then(async res => {
-        if (!res.ok) {
-            throw new Error('HTTP ' + res.status);
+    function append(text, user = false) {
+        const row = document.createElement('div');
+        row.className = ui.wrap + ' ' + (user ? ui.user : ui.bot);
+        const bubble = document.createElement('div');
+        bubble.className = ui.content;
+        bubble.innerHTML = escapeHTML(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        row.appendChild(bubble);
+        body.appendChild(row);
+        body.scrollTop = body.scrollHeight;
+        return row;
+    }
+    async function send() {
+        const message = input.value.trim();
+        if (busy || !message) return;
+        busy = true;
+        if (sendButton) sendButton.disabled = true;
+        const suggestions = document.getElementById('ai-suggestions');
+        if (suggestions) suggestions.style.display = 'none';
+        append(message, true);
+        input.value = '';
+        const loading = append('Đang đọc câu hỏi và dữ liệu kho…');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 75000);
+        try {
+            const form = new FormData();
+            form.append('noidung_chat', message);
+            form.append('conversation_id', conversationId);
+            const response = await fetch('api_chat.php', {
+                method: 'POST', credentials: 'same-origin', body: form, signal: controller.signal
+            });
+            let data;
+            try { data = await response.json(); }
+            catch (_) { throw new Error('Máy chủ trả dữ liệu không hợp lệ. Hãy kiểm tra api_chat.php và nhật ký lỗi PHP.'); }
+            if (!response.ok || data.ok === false) throw new Error(data.reply || 'Dịch vụ AI đang bận.');
+            if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI trả về nội dung trống. Hãy thử lại.');
+            append(data.reply);
+        } catch (error) {
+            append(error.name === 'AbortError' ? 'AI phản hồi quá lâu. Vui lòng thử lại sau.' : error.message);
+            if (!input.value) input.value = message;
+        } finally {
+            clearTimeout(timeout);
+            loading.remove();
+            busy = false;
+            if (sendButton) sendButton.disabled = false;
+            body.scrollTop = body.scrollHeight;
+            input.focus();
         }
-        return res.json();
-    })
-    .then(data => {
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-
-        const replyText = data.reply || "Hệ thống bận, vui lòng thử lại sau.";
-        const botMsgHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">${formatReply(replyText)}</div></div>`;
-        chatBody.insertAdjacentHTML('beforeend', botMsgHTML);
-        scrollToBottom();
-    })
-    .catch(err => {
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-
-        const errorHTML = `<div class="ai-msg ai-msg-bot"><div class="msg-content">Lỗi kết nối máy chủ (${err.message}). Vui lòng tải lại trang.</div></div>`;
-        chatBody.insertAdjacentHTML('beforeend', errorHTML);
-        scrollToBottom();
-    });
-}
-
-// Tự động cuộn xuống cuối
-function scrollToBottom() {
-    const chatBody = document.getElementById('ai-chat-body');
-    chatBody.scrollTop = chatBody.scrollHeight;
-}
-
-// Lọc ký tự HTML tránh lỗi XSS
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-    );
-}
-
-// Định dạng xuống dòng trong tin nhắn AI
-function formatReply(str) {
-    return escapeHTML(str).replace(/\n/g, '<br>');
-}
+    }
+    function quick(text) {
+        if (busy) return;
+        input.value = text;
+        send();
+    }
+    function key(event) {
+        if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); send(); }
+    }
+    window.sendAIMessage = send; window.sendQuickMessage = quick; window.handleKeyPress = key; window.toggleAIChat = () => { const box = document.getElementById('ai-chat-box'); box.classList.toggle('ai-chat-hidden'); if (!box.classList.contains('ai-chat-hidden')) input.focus(); };
+})();
 </script>

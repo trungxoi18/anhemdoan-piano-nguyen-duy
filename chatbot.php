@@ -61,7 +61,6 @@
             }
         }
 
-        /* HEADER */
         .chat-header {
             padding: 14px 18px;
             background: #ffffff;
@@ -140,7 +139,6 @@
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
 
-        /* CHAT BODY */
         #chatbox {
             flex: 1;
             overflow-y: auto;
@@ -163,12 +161,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .msg-wrap.user {
-            align-self: flex-end;
-        }
-        .msg-wrap.ai {
-            align-self: flex-start;
-        }
+        .msg-wrap.user { align-self: flex-end; }
+        .msg-wrap.ai { align-self: flex-start; }
 
         .msg {
             padding: 11px 15px;
@@ -202,7 +196,6 @@
         .msg-wrap.user .msg-time { text-align: right; }
         .msg-wrap.ai .msg-time { text-align: left; }
 
-        /* SUGGESTIONS */
         .suggestions-bar {
             padding: 8px 14px 4px;
             display: flex;
@@ -231,7 +224,6 @@
             border-color: rgba(14, 165, 233, 0.3);
         }
 
-        /* INPUT AREA */
         .input-area {
             padding: 10px 14px 14px;
             background: #ffffff;
@@ -253,7 +245,7 @@
             padding: 12px 16px;
             border: 1.5px solid var(--border);
             border-radius: 24px;
-            font-size: 16px; /* 16px prevents iOS Safari auto-zoom */
+            font-size: 16px;
             font-family: inherit;
             color: var(--text-primary);
             outline: none;
@@ -284,11 +276,7 @@
             transform: scale(1.05);
             background: #0284c7;
         }
-        .btn-send:active {
-            transform: scale(0.95);
-        }
 
-        /* Typing dots */
         .typing-dots {
             display: inline-flex;
             gap: 4px;
@@ -308,14 +296,16 @@
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
         }
-    </style>
+    
+button:disabled { opacity: .55; cursor: wait; }
+#chatbox { min-height: 0; }
+</style>
 </head>
 <body>
 
 <div class="chat-app-container">
-    <!-- Header -->
     <div class="chat-header">
-        <a href="index.php" class="btn-back" title="Quay lại Dashboard">
+        <a href="index.php" class="btn-back" title="Quay lại">
             <span class="material-symbols-rounded">arrow_back</span>
         </a>
         <div class="bot-profile">
@@ -334,7 +324,6 @@
         </a>
     </div>
 
-    <!-- Khung tin nhắn -->
     <div id="chatbox">
         <div class="msg-wrap ai">
             <div class="msg">
@@ -345,127 +334,97 @@
         </div>
     </div>
 
-    <!-- Gợi ý câu hỏi nhanh -->
     <div class="suggestions-bar">
-        <button type="button" class="chip" onclick="quickSend('Có những mẫu Grand Piano nào trong kho?')">🎹 Grand Piano</button>
-        <button type="button" class="chip" onclick="quickSend('Tư vấn các cây đàn giá dưới 50 triệu')">💰 Đàn dưới 50 triệu</button>
-        <button type="button" class="chip" onclick="quickSend('Đàn Kawai K-300 giá bao nhiêu và còn hàng không?')">🏷️ Kawai K-300</button>
-        <button type="button" class="chip" onclick="quickSend('Chính sách bảo hành đàn piano thế nào?')">🛡️ Bảo hành</button>
+        <button type="button" type="button" class="chip" onclick="quickSend('Trong kho có những mẫu đàn nào?')">📦 Mẫu đàn trong kho</button>
+        <button type="button" type="button" class="chip" onclick="quickSend('Có những mẫu Grand Piano nào?')">🎹 Grand Piano</button>
+        <button type="button" type="button" class="chip" onclick="quickSend('Tư vấn các cây đàn giá dưới 50 triệu')">💰 Đàn dưới 50 triệu</button>
+        <button type="button" type="button" class="chip" onclick="quickSend('Chính sách bảo hành đàn piano thế nào?')">🛡️ Bảo hành</button>
     </div>
 
-    <!-- Thanh nhập tin nhắn -->
     <div class="input-area">
         <div class="input-box-wrapper">
             <input type="text" id="userInput" placeholder="Hỏi AI về mẫu đàn, giá, tồn kho..." onkeypress="handleKeyPress(event)" autocomplete="off">
         </div>
-        <button class="btn-send" onclick="sendMessage()" title="Gửi tin nhắn">
+        <button type="button" class="btn-send" onclick="sendMessage()" title="Gửi tin nhắn">
             <span class="material-symbols-rounded">send</span>
         </button>
     </div>
 </div>
 
 <script>
-    function handleKeyPress(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            sendMessage();
+(() => {
+    const ui = {input:'userInput',body:'chatbox',send:'sendBtn',wrap:'msg-wrap',user:'user',bot:'ai',content:'msg'};
+    const input = document.getElementById(ui.input);
+    const body = document.getElementById(ui.body);
+    const sendButton = document.getElementById(ui.send) || document.querySelector('.btn-send');
+    let busy = false;
+    // Một ID riêng cho mỗi lần mở trang: nội dung nhìn thấy khớp ngữ cảnh máy chủ.
+    const random = new Uint32Array(4);
+    crypto.getRandomValues(random);
+    const conversationId = Array.from(random, n => n.toString(16)).join('-');
+    input.maxLength = 3000;
+    body.setAttribute('aria-live', 'polite');
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    function append(text, user = false) {
+        const row = document.createElement('div');
+        row.className = ui.wrap + ' ' + (user ? ui.user : ui.bot);
+        const bubble = document.createElement('div');
+        bubble.className = ui.content;
+        bubble.innerHTML = escapeHTML(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        row.appendChild(bubble);
+        body.appendChild(row);
+        body.scrollTop = body.scrollHeight;
+        return row;
+    }
+    async function send() {
+        const message = input.value.trim();
+        if (busy || !message) return;
+        busy = true;
+        if (sendButton) sendButton.disabled = true;
+        const suggestions = document.getElementById('ai-suggestions');
+        if (suggestions) suggestions.style.display = 'none';
+        append(message, true);
+        input.value = '';
+        const loading = append('Đang đọc câu hỏi và dữ liệu kho…');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 75000);
+        try {
+            const form = new FormData();
+            form.append('noidung_chat', message);
+            form.append('conversation_id', conversationId);
+            const response = await fetch('api_chat.php', {
+                method: 'POST', credentials: 'same-origin', body: form, signal: controller.signal
+            });
+            let data;
+            try { data = await response.json(); }
+            catch (_) { throw new Error('Máy chủ trả dữ liệu không hợp lệ. Hãy kiểm tra api_chat.php và nhật ký lỗi PHP.'); }
+            if (!response.ok || data.ok === false) throw new Error(data.reply || 'Dịch vụ AI đang bận.');
+            if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI trả về nội dung trống. Hãy thử lại.');
+            append(data.reply);
+        } catch (error) {
+            append(error.name === 'AbortError' ? 'AI phản hồi quá lâu. Vui lòng thử lại sau.' : error.message);
+            if (!input.value) input.value = message;
+        } finally {
+            clearTimeout(timeout);
+            loading.remove();
+            busy = false;
+            if (sendButton) sendButton.disabled = false;
+            body.scrollTop = body.scrollHeight;
+            input.focus();
         }
     }
-
-    function quickSend(text) {
-        const input = document.getElementById('userInput');
+    function quick(text) {
+        if (busy) return;
         input.value = text;
-        sendMessage();
+        send();
     }
-
-    function getTimeString() {
-        const d = new Date();
-        return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+    function key(event) {
+        if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); send(); }
     }
-
-    function sendMessage() {
-        const input = document.getElementById('userInput');
-        const message = input.value.trim();
-        const chatbox = document.getElementById('chatbox');
-        if (!message) return;
-
-        const timeStr = getTimeString();
-
-        // Thêm tin nhắn của người dùng
-        const userHtml = `
-            <div class="msg-wrap user">
-                <div class="msg">${escapeHtml(message)}</div>
-                <div class="msg-time">${timeStr}</div>
-            </div>
-        `;
-        chatbox.insertAdjacentHTML('beforeend', userHtml);
-        input.value = '';
-        chatbox.scrollTop = chatbox.scrollHeight;
-
-        // Trạng thái chờ gõ
-        const loadingId = 'loading-' + Date.now();
-        const loadingHtml = `
-            <div class="msg-wrap ai" id="${loadingId}">
-                <div class="msg">
-                    <div class="typing-dots"><span></span><span></span><span></span></div>
-                </div>
-            </div>
-        `;
-        chatbox.insertAdjacentHTML('beforeend', loadingHtml);
-        chatbox.scrollTop = chatbox.scrollHeight;
-
-        // Gọi backend xử lý chat bằng FormData
-        const formData = new FormData();
-        formData.append('message', message);
-
-        fetch('chat_process.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(async response => {
-            const text = await response.text();
-            try {
-                return JSON.parse(text);
-            } catch(e) {
-                return { reply: text || 'Lỗi phản hồi máy chủ.' };
-            }
-        })
-        .then(data => {
-            const loadingElem = document.getElementById(loadingId);
-            if (loadingElem) loadingElem.remove();
-
-            let replyText = data.reply || 'Xin lỗi, tôi chưa có câu trả lời cho câu hỏi này.';
-            let cleanReply = replyText.replace(/\*\*/g, '').replace(/\n/g, '<br>');
-
-            const aiHtml = `
-                <div class="msg-wrap ai">
-                    <div class="msg">${cleanReply}</div>
-                    <div class="msg-time">${getTimeString()}</div>
-                </div>
-            `;
-            chatbox.insertAdjacentHTML('beforeend', aiHtml);
-            chatbox.scrollTop = chatbox.scrollHeight;
-        })
-        .catch(error => {
-            const loadingElem = document.getElementById(loadingId);
-            if (loadingElem) loadingElem.remove();
-
-            const errHtml = `
-                <div class="msg-wrap ai">
-                    <div class="msg" style="color: #ef4444;">Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại đường truyền mạng.</div>
-                    <div class="msg-time">${getTimeString()}</div>
-                </div>
-            `;
-            chatbox.insertAdjacentHTML('beforeend', errHtml);
-            chatbox.scrollTop = chatbox.scrollHeight;
-        });
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    window.sendMessage = send; window.quickSend = quick; window.handleKeyPress = key;
+})();
 </script>
 
 </body>
