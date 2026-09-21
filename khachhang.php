@@ -142,7 +142,7 @@ if (isset($_SESSION['flash_error'])) {
 }
 
 // Lấy danh sách khách hàng
-$search = trim($_GET['search'] ?? '');
+$search = trim($_GET['search'] ?? ($_GET['q'] ?? ''));
 if (!empty($search)) {
     $search_term = "%" . $search . "%";
     $sql = "SELECT * FROM khachhang WHERE hoTen LIKE ? OR soDienThoai LIKE ? ORDER BY maKhachHang DESC";

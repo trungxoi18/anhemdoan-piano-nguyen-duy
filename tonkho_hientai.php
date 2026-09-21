@@ -18,7 +18,7 @@ $title = "Tồn kho & Kiểm kê hiện tại";
 // Lấy danh sách kho
 $khos = $conn->query("SELECT * FROM kho ORDER BY maKho ASC");
 $selected_kho = isset($_GET['ma_kho']) ? intval($_GET['ma_kho']) : 0;
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : (isset($_GET['q']) ? trim($_GET['q']) : '');
 $tab_filter = isset($_GET['tab']) ? trim($_GET['tab']) : 'all'; // all, sales, baotri
 
 // Điều kiện lọc kho cho KPI
