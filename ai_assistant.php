@@ -51,7 +51,7 @@ if ($requestId !== '' && isset($_SESSION['kho_ai_results'][$requestId])) {
 }
 // Cấu hình tại môi trường máy chủ, hoặc thay chuỗi trống dưới đây khi chạy localhost.
 // Không đưa API key vào chat_widget.php hay tro_ly.php.
-$apiKey = trim(getenv('') ?: '');
+$apiKey = trim(getenv('AQ.Ab8RN6Ib08NR5XOIu8VBloYcPJBBlNDw1AyBma6vqTBz-bEOGg') ?: 'AQ.Ab8RN6Ib08NR5XOIu8VBloYcPJBBlNDw1AyBma6vqTBz-bEOGg');
 $model = getenv('GEMINI_MODEL') ?: 'gemini-3.6-flash';
 if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng nhờ quản trị viên cấu hình để sử dụng AI.', 503); }
 if (!preg_match('/^[a-zA-Z0-9._-]+$/D', $model)) { sendResponse('Cấu hình GEMINI_MODEL không hợp lệ.', 503); }
