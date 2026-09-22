@@ -274,10 +274,31 @@ button:disabled { opacity: .55; cursor: wait; }
     const body = document.getElementById(ui.body);
     const sendButton = document.getElementById(ui.send) || document.querySelector('.btn-send');
     let busy = false;
+    let retryAt = 0;
+    let pending = null;
+    let timer = null;
+    const notice = document.createElement('div');
+    notice.setAttribute('role', 'status');
+    notice.style.cssText = 'font-size:13px;padding:6px 12px;color:#735400;';
+    body.parentNode.insertBefore(notice, body.nextSibling);
+    function updateCooldown() {
+        const seconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+        if (sendButton) sendButton.disabled = busy || seconds > 0;
+        notice.textContent = seconds > 0
+            ? `Gemini yêu cầu chờ ${seconds} giây. Câu hỏi được giữ lại để bạn gửi lại.` : '';
+        if (!seconds && timer) { clearInterval(timer); timer = null; }
+    }
+    function cooldown(seconds) {
+        retryAt = Math.max(retryAt, Date.now() + seconds * 1000);
+        if (timer) clearInterval(timer);
+        updateCooldown();
+        if (retryAt > Date.now()) timer = setInterval(updateCooldown, 1000);
+    }
     // Một ID riêng cho mỗi lần mở trang: nội dung nhìn thấy khớp ngữ cảnh máy chủ.
     const random = new Uint32Array(4);
     crypto.getRandomValues(random);
     const conversationId = Array.from(random, n => n.toString(16)).join('-');
+    let sequence = 0;
     input.maxLength = 3000;
     body.setAttribute('aria-live', 'polite');
     function escapeHTML(value) {
@@ -296,12 +317,15 @@ button:disabled { opacity: .55; cursor: wait; }
     }
     async function send() {
         const message = input.value.trim();
-        if (busy || !message) return;
+        if (busy || !message || Date.now() < retryAt) return;
         busy = true;
         if (sendButton) sendButton.disabled = true;
         const suggestions = document.getElementById('ai-suggestions');
         if (suggestions) suggestions.style.display = 'none';
-        append(message, true);
+        if (!pending || pending.message !== message) {
+            pending = { message, id: conversationId + '-' + (++sequence) };
+            append(message, true);
+        }
         input.value = '';
         const loading = append('Đang đọc câu hỏi và dữ liệu kho…');
         const controller = new AbortController();
@@ -310,15 +334,26 @@ button:disabled { opacity: .55; cursor: wait; }
             const form = new FormData();
             form.append('noidung_chat', message);
             form.append('conversation_id', conversationId);
+            form.append('request_id', pending.id);
             const response = await fetch('ai_assistant.php', {
                 method: 'POST', credentials: 'same-origin', body: form, signal: controller.signal
             });
+            const raw = await response.text();
+            if (new URL(response.url).hostname === 'errors.infinityfree.net') {
+                throw new Error('Hosting chặn đường dẫn ai_assistant.php. Hãy kiểm tra cấu hình hosting.');
+            }
             let data;
-            try { data = await response.json(); }
-            catch (_) { throw new Error('Máy chủ trả dữ liệu không hợp lệ. Hãy kiểm tra api_chat.php và nhật ký lỗi PHP.'); }
+            try { data = JSON.parse(raw); }
+            catch (_) { throw new Error(`Máy chủ trả nội dung không phải JSON (HTTP ${response.status}). Kiểm tra ai_assistant.php.`); }
+            if (response.status === 429 || data.code === 'RATE_LIMITED') {
+                const seconds = Number(data.retry_after || response.headers.get('Retry-After') || 60);
+                cooldown(Number.isFinite(seconds) && seconds > 0 ? seconds : 60);
+                throw new Error(data.reply || 'Gemini đang giới hạn lượt gọi.');
+            }
             if (!response.ok || data.ok === false) throw new Error(data.reply || 'Dịch vụ AI đang bận.');
             if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI trả về nội dung trống. Hãy thử lại.');
             append(data.reply);
+            pending = null;
         } catch (error) {
             append(error.name === 'AbortError' ? 'AI phản hồi quá lâu. Vui lòng thử lại sau.' : error.message);
             if (!input.value) input.value = message;
@@ -326,13 +361,13 @@ button:disabled { opacity: .55; cursor: wait; }
             clearTimeout(timeout);
             loading.remove();
             busy = false;
-            if (sendButton) sendButton.disabled = false;
+            updateCooldown();
             body.scrollTop = body.scrollHeight;
             input.focus();
         }
     }
     function quick(text) {
-        if (busy) return;
+        if (busy || Date.now() < retryAt) return;
         input.value = text;
         send();
     }
