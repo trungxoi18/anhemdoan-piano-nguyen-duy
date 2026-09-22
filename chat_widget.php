@@ -267,8 +267,32 @@ button:disabled { opacity: .55; cursor: wait; }
 #ai-chat-body { min-height: 0; }
 </style>
 
+<?php
+// Các file AI đặt cùng một thư mục. Hỗ trợ thư mục con localhost và gốc tên miền.
+$aiRoot = str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: '');
+$aiDir = str_replace('\\', '/', __DIR__);
+$aiEndpoint = getenv('AI_ENDPOINT_PATH') ?: '';
+if ($aiEndpoint === '') {
+    $rootPrefix = rtrim($aiRoot, '/') . '/';
+    if ($aiRoot !== '' && strncasecmp($aiDir . '/', $rootPrefix, strlen($rootPrefix)) === 0) {
+        $relativeDir = substr($aiDir, strlen(rtrim($aiRoot, '/')));
+        $parts = array_filter(explode('/', trim($relativeDir, '/')), 'strlen');
+        $aiEndpoint = '/' . ($parts ? implode('/', array_map('rawurlencode', $parts)) . '/' : '') . 'ai_assistant.php';
+    } else {
+        // Alias/symlink đặc biệt: cấu hình AI_ENDPOINT_PATH nếu trang nhúng ở thư mục khác.
+        $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+        $aiEndpoint = rtrim($scriptDir, '/.') . '/ai_assistant.php';
+    }
+}
+?>
 <script>
+
 (() => {
+    const endpointPath = <?php echo json_encode($aiEndpoint, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    const endpoint = new URL(endpointPath, window.location.origin);
+    if (endpoint.origin !== window.location.origin) {
+        throw new Error('AI_ENDPOINT_PATH phải cùng tên miền với website.');
+    }
     const ui = {input:'ai-chat-input',body:'ai-chat-body',send:'ai-chat-send',wrap:'ai-msg',user:'ai-msg-user',bot:'ai-msg-bot',content:'msg-content'};
     const input = document.getElementById(ui.input);
     const body = document.getElementById(ui.body);
@@ -335,12 +359,15 @@ button:disabled { opacity: .55; cursor: wait; }
             form.append('noidung_chat', message);
             form.append('conversation_id', conversationId);
             form.append('request_id', pending.id);
-            const response = await fetch('ai_assistant.php', {
+            const response = await fetch(endpoint.href, {
                 method: 'POST', credentials: 'same-origin', body: form, signal: controller.signal
             });
             const raw = await response.text();
             if (new URL(response.url).hostname === 'errors.infinityfree.net') {
                 throw new Error('Hosting chặn đường dẫn ai_assistant.php. Hãy kiểm tra cấu hình hosting.');
+            }
+            if (response.redirected && new URL(response.url).pathname !== endpoint.pathname) {
+                throw new Error('Yêu cầu AI bị chuyển sang trang khác. Kiểm tra đăng nhập và đường dẫn endpoint.');
             }
             let data;
             try { data = JSON.parse(raw); }

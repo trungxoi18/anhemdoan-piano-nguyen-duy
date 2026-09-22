@@ -16,11 +16,19 @@ set_exception_handler(function ($e) {
     error_log('KhoDan AI internal error: ' . get_class($e));
     sendResponse('Hệ thống chưa xử lý được yêu cầu. Vui lòng thử lại sau.', 500);
 });
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    sendResponse('Endpoint AI đang hoạt động. Hãy gửi câu hỏi từ giao diện.', 200,
+        ['code' => 'ENDPOINT_READY']);
+}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
     sendResponse('Vui lòng gửi câu hỏi bằng POST.', 405);
 }
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+// Cùng session đăng nhập với index.php; không cung cấp dữ liệu nội bộ cho khách.
+if (empty($_SESSION['user_id']) || !in_array((int) ($_SESSION['role_id'] ?? 0), [1, 2, 3], true)) {
+    sendResponse('Vui lòng đăng nhập tài khoản nhân viên để sử dụng trợ lý kho.', 401, ['code' => 'LOGIN_REQUIRED']);
+}
 $message = $_POST['noidung_chat'] ?? '';
 $id = $_POST['conversation_id'] ?? 'default';
 if (!is_string($message) || !is_string($id) || !preg_match('/^[a-zA-Z0-9_-]{1,80}$/D', $id)) {
@@ -35,7 +43,7 @@ $requestId = $_POST['request_id'] ?? '';
 if (!is_string($requestId) || !preg_match('/^[a-zA-Z0-9_-]{0,80}$/D', $requestId)) {
     sendResponse('Mã yêu cầu không hợp lệ.', 400);
 }
-$scope = hash('sha256', json_encode([$_SESSION['user_id'] ?? null, $_SESSION['role_id'] ?? null]));
+$scope = hash('sha256', json_encode([$_SESSION['user_id'] ?? null, $_SESSION['role_id'] ?? null, 'warehouse-v1']));
 if (($_SESSION['kho_ai_scope'] ?? '') !== $scope) {
     unset($_SESSION['kho_ai_threads'], $_SESSION['kho_ai_results'], $_SESSION['kho_ai_cache'], $_SESSION['kho_ai_wait']);
     $_SESSION['kho_ai_scope'] = $scope;
@@ -49,10 +57,16 @@ if ($requestId !== '' && isset($_SESSION['kho_ai_results'][$requestId])) {
     if (!hash_equals($saved['hash'], $requestHash)) { sendResponse('Mã yêu cầu đã được sử dụng.', 409); }
     sendResponse($saved['reply'], 200, ['truncated' => $saved['truncated'], 'replayed' => true]);
 }
+// Tùy chọn: ai_config.php nằm cùng thư mục, không đưa key vào JavaScript.
+$settings = [];
+if (is_file(__DIR__ . '/ai_config.php')) {
+    $settings = require __DIR__ . '/ai_config.php';
+    if (!is_array($settings)) { sendResponse('ai_config.php phải return một mảng cấu hình.', 503); }
+}
 // Cấu hình tại môi trường máy chủ, hoặc thay chuỗi trống dưới đây khi chạy localhost.
 // Không đưa API key vào chat_widget.php hay tro_ly.php.
-$apiKey = trim(getenv('AQ.Ab8RN6Ib08NR5XOIu8VBloYcPJBBlNDw1AyBma6vqTBz-bEOGg') ?: 'AQ.Ab8RN6Ib08NR5XOIu8VBloYcPJBBlNDw1AyBma6vqTBz-bEOGg');
-$model = getenv('GEMINI_MODEL') ?: 'gemini-3.6-flash';
+$apiKey = trim((string) (getenv('GEMINI_API_KEY') ?: ($settings['api_key'] ?? '')));
+$model = (string) (getenv('GEMINI_MODEL') ?: ($settings['model'] ?? 'gemini-3.6-flash'));
 if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng nhờ quản trị viên cấu hình để sử dụng AI.', 503); }
 if (!preg_match('/^[a-zA-Z0-9._-]+$/D', $model)) { sendResponse('Cấu hình GEMINI_MODEL không hợp lệ.', 503); }
 if (!function_exists('curl_init')) { sendResponse('Máy chủ chưa bật extension PHP cURL.', 503); }
@@ -73,7 +87,14 @@ function readDataset($conn, $sql, $label) {
         $result = $conn->query($sql);
         if (!$result) { throw new RuntimeException('query failed'); }
         $rows = [];
-        while ($row = $result->fetch_assoc()) { $rows[] = $row; }
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+            if (count($rows) > 5000) {
+                $result->free();
+                return ['status' => 'unavailable', 'reason' => 'dataset_too_large', 'rows' => []];
+            }
+        }
+        $result->free();
         return ['status' => 'ok', 'rows' => $rows];
     } catch (Throwable $e) {
         error_log('KhoDan AI: query failed for ' . $label);
@@ -97,7 +118,11 @@ $context['promotions'] = readDataset($conn,
      FROM chuongtrinhkhuyenmai WHERE trangThai = 'Đang diễn ra'
      AND ngayBatDau <= NOW() AND (ngayKetThuc IS NULL OR ngayKetThuc >= CURRENT_DATE())
      ORDER BY ngayBatDau DESC", 'promotions');
-foreach (['inventory', 'warranty', 'promotions'] as $dataset) {
+require __DIR__ . '/ai_warehouse_data.php';
+$datasetNames = array_keys(array_filter($context, 'is_array'));
+$allDatasetsOk = true;
+foreach ($datasetNames as $dataset) {
+    if ($context[$dataset]['status'] !== 'ok') { $allDatasetsOk = false; }
     $rows = $context[$dataset]['rows'];
     $context[$dataset]['columns'] = $rows ? array_keys($rows[0]) : [];
     $context[$dataset]['rows'] = array_map('array_values', $rows);
@@ -118,9 +143,20 @@ soLuongTon=0 nghĩa là mẫu được lưu nhưng hiện hết hàng. Giá null
 Lọc đồng thời ngân sách, hãng, loại và còn hàng theo ý người dùng. Khi không có lựa chọn đúng, nói rõ điều kiện không đáp ứng trước khi đưa phương án gần nhất. Không liệt kê hàng hết như hàng sẵn có.
 Có thể giải thích kiến thức nhạc cụ phổ thông, nhưng phân biệt kiến thức chung với thông số của một mẫu cụ thể chưa có dữ liệu. Không khẳng định tính năng chỉ vì tên mẫu.
 Nếu hỏi toàn bộ danh sách, không tự cắt còn 4–6 mẫu; nếu rất dài, chia phần có đánh số và nêu rõ còn phần tiếp theo. Kết thúc câu trọn ý.
-Không tuyên bố đã thêm, sửa, xóa kho hay tạo đơn: bạn chỉ có quyền đọc dữ liệu được cung cấp. Những dữ liệu chưa được kết nối như doanh thu, khách hàng, lịch sử nhập xuất phải nói chưa có dữ liệu.
+Không tuyên bố đã thêm, sửa, xóa kho hay tạo đơn: bạn chỉ có quyền đọc dữ liệu được cung cấp. Không có dữ liệu khách hàng, thanh toán thực thu, giá vốn hoặc lịch sử nhập/xuất; không suy diễn những nội dung này.
+serials là trạng thái HIỆN TẠI từng cây đàn, mỗi maSerial chỉ xuất hiện một lần; tinhTrang là mô tả tình trạng vật lý, khác trangThai là trạng thái nghiệp vụ. Chỉ 'Trong kho' được tính sẵn bán; các trạng thái khác phải nêu đúng nguyên văn, không gộp thành hết hàng hoặc đã bán.
+status_summary là số lượng chính xác do SQL đếm theo mẫu/kho/trạng thái; dùng để trả lời thống kê hiện tại, không đếm từ sales_lines vì một serial có thể có nhiều dòng hóa đơn.
+sales_lines là lịch sử liên kết serial và hóa đơn; một cây có thể có nhiều hóa đơn. Hóa đơn 'Đã hủy' không phải giao dịch bán thành công; 'Chờ duyệt', 'Chờ giao', 'Đang giao' chưa phải 'Hoàn thành'. Trạng thái khác hoặc trống phải nói đúng dữ liệu, không tự coi hoàn thành.
+Hỏi 'đã bán' không kèm thời gian: dùng serials.trangThai='Đã bán'. Hỏi theo kỳ: chỉ có ngayLapHoaDon, đây là NGÀY LẬP chứ không phải ngày giao hay ngày hoàn tất; nêu rõ đang lọc theo ngày lập hóa đơn và trạng thái hóa đơn hiện tại. Nếu cần ngày bán/giao chính xác thì nói chưa có cột ngày đó.
+Giá serials.giaBan là giá niêm yết; sales_lines.donGia là đơn giá trên dòng hóa đơn. khuyenMaiLuuTrongDong là giá trị lưu gốc, chưa xác định đơn vị phần trăm hay tiền nên không tự tính giá sau giảm. Không suy ra đã thanh toán từ trạng thái hoàn thành.
+Nếu trạng thái serial và hóa đơn khác nhau, trình bày riêng hai trạng thái và lưu ý cần đối chiếu; không tự sửa hay che giấu sự khác biệt. Không tìm thấy serial thì nói không tìm thấy, không kết luận đã bán.
+Nếu dataset báo unavailable hoặc dataset_too_large, nói rõ chưa tra cứu được phần đó; không dùng lịch sử hội thoại thay dữ liệu mới. Có thể trả lời các phần còn dữ liệu.
 PROMPT;
 $system .= "\n\nDỮ LIỆU HIỆN TẠI (JSON):\n" . $data;
+$now = new DateTimeImmutable('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+$system .= "\nNgày giờ hiện tại: " . $now->format('d/m/Y H:i')
+    . "\nKhi hỏi ngày hoặc giờ, trả lời đúng phần được hỏi; không nhắc quốc gia, múi giờ hoặc nguồn thời gian.";
+
 if (!isset($_SESSION['kho_ai_threads'])) { $_SESSION['kho_ai_threads'] = []; }
 $threads =& $_SESSION['kho_ai_threads'];
 // Tối đa 8 hội thoại, mỗi hội thoại giữ 12 lượt hỏi/đáp và hết hạn sau 2 giờ.
@@ -134,7 +170,7 @@ $config = ['temperature' => 0.4, 'maxOutputTokens' => 8192];
 if ($model === 'gemini-2.5-flash') { $config['thinkingConfig'] = ['thinkingBudget' => 1024]; }
 // LOW giảm độ trễ suy nghĩ; không hạ giới hạn độ dài câu trả lời.
 // Có thể đặt GEMINI_THINKING_LEVEL=MEDIUM/HIGH, hoặc DEFAULT để bỏ cấu hình này.
-$thinkingLevel = strtoupper(getenv('GEMINI_THINKING_LEVEL') ?: 'LOW');
+$thinkingLevel = strtoupper((string) (getenv('GEMINI_THINKING_LEVEL') ?: ($settings['thinking_level'] ?? 'LOW')));
 if ($model === 'gemini-3.6-flash' && in_array($thinkingLevel, ['LOW', 'MEDIUM', 'HIGH'], true)) {
     $config['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
 }
@@ -175,6 +211,15 @@ curl_setopt_array($ch, [
     CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2,
     CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 60
 ]);
+// XAMPP có thể cần CA bundle riêng; không tắt kiểm tra chứng chỉ.
+$caFile = getenv('GEMINI_CA_BUNDLE') ?: ($settings['ca_bundle'] ?? '');
+if ($caFile !== '') {
+    if (!is_string($caFile) || !is_readable($caFile)) {
+        curl_close($ch);
+        sendResponse('Đường dẫn CA bundle không hợp lệ. Kiểm tra cấu hình máy chủ.', 503, ['code' => 'CA_CONFIG_ERROR']);
+    }
+    curl_setopt($ch, CURLOPT_CAINFO, $caFile);
+}
 $response = curl_exec($ch);
 $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $errno = curl_errno($ch);
@@ -201,11 +246,20 @@ if ($http === 429) {
 if ($response === false || $http !== 200) {
     // Không trả nguyên phản hồi nhà cung cấp / API key cho trình duyệt.
     error_log('KhoDan AI: provider HTTP=' . $http . ' curl=' . $errno);
+    if ($errno === 60 || $errno === 77) {
+        sendResponse('Máy chủ chưa xác minh được chứng chỉ HTTPS. Cấu hình CA bundle cho PHP cURL.', 503, ['code' => 'TLS_CONFIG_ERROR']);
+    }
+    $providerError = json_decode($response ?: '{}', true);
+    $providerMessage = (string) ($providerError['error']['message'] ?? '');
+    if ($http === 403 && stripos($providerMessage, 'project has been denied access') !== false) {
+        sendResponse('Google từ chối quyền truy cập của dự án Gemini. Cần xử lý với Google; thay đường dẫn localhost/hosting không sửa được lỗi này.', 503,
+            ['code' => 'PROJECT_ACCESS_DENIED', 'provider_http' => 403]);
+    }
     $errors = [400 => 'Yêu cầu hoặc cấu hình Gemini chưa hợp lệ. Quản trị viên cần kiểm tra API key và model.',
-        401 => 'API key Gemini chưa hợp lệ.', 403 => 'API key chưa được cấp quyền gọi Gemini.',
+        401 => 'Google không chấp nhận thông tin xác thực. Kiểm tra key của môi trường đang chạy.', 403 => 'Google từ chối yêu cầu. Kiểm tra quyền dự án và hạn chế của API key.',
         404 => 'Model Gemini không khả dụng. Quản trị viên cần kiểm tra GEMINI_MODEL.',
         429 => 'Gemini đang giới hạn lượt gọi hoặc đã hết hạn mức. Vui lòng thử lại sau.'];
-    sendResponse($errors[$http] ?? 'Chưa kết nối được dịch vụ AI. Vui lòng thử lại sau.', 503);
+    sendResponse($errors[$http] ?? 'Chưa kết nối được dịch vụ AI. Vui lòng thử lại sau.', 503, ['code' => 'PROVIDER_ERROR', 'provider_http' => $http]);
 }
 $result = json_decode($response, true);
 $candidate = $result['candidates'][0] ?? [];
@@ -226,7 +280,7 @@ while (count($threads) >= 8) { array_shift($threads); }
 $threads[$id] = ['time' => time(), 'messages' => $history];
 $truncated = $reason === 'MAX_TOKENS';
 if ($truncated) { $reply .= "\n\n⚠️ Câu trả lời đã chạm giới hạn độ dài. Bạn có thể nhắn “Tiếp tục phần còn lại”."; }
-if (!$truncated && !$cached && $context['inventory']['status'] === 'ok' && $context['warranty']['status'] === 'ok' && $context['promotions']['status'] === 'ok') {
+if (!$truncated && !$cached && $allDatasetsOk) {
     if (!isset($_SESSION['kho_ai_cache'])) { $_SESSION['kho_ai_cache'] = []; }
     while (count($_SESSION['kho_ai_cache']) >= 10) { array_shift($_SESSION['kho_ai_cache']); }
     $_SESSION['kho_ai_cache'][$cacheKey] = ['time' => time(), 'reply' => $reply];
