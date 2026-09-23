@@ -277,89 +277,217 @@ if ($res_policies) {
     <?php include 'includes/topbar.php'; ?>
 
     <div class="content">
-        <!-- 1. Hero Banner -->
+        <!-- 1. Hero Banner (Grand Piano Background & Promo Showcase) -->
         <?php if(isset($_SESSION['flash_success'])): ?>
             <div class="alert alert-success" style="background: var(--success-bg); color: var(--success); border: 1px solid rgba(52,211,153,0.3); padding:15px; border-radius:12px; margin-bottom:24px; display: flex; align-items: center; gap: 10px; animation: fadeInUp 0.5s ease;">
                 <span class="material-symbols-rounded">check_circle</span>
                 <?php echo $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
             </div>
         <?php endif; ?>
+
         <div class="hero-banner">
-            <h1><?php echo __('hello'); ?> <?php echo htmlspecialchars($fullname); ?>!</h1>
-            <p>Chào mừng trở lại bảng điều khiển hệ thống quản lý. Tại đây bạn có thể kiểm soát mọi hoạt động kinh doanh, tồn kho và các dịch vụ sau bán hàng một cách trực quan nhất.</p>
+            <?php if (!empty($active_promos)): 
+                $top_promo = $active_promos[0];
+                $discount_val = intval($top_promo['phanTramGiam'] ?? 0);
+                $promo_title = htmlspecialchars($top_promo['tenChuongTrinh'] ?? 'Chương trình ưu đãi đặc biệt');
+                $raw_desc = $top_promo['moTa'] ?? '';
+                $clean_desc = trim(preg_replace('/\s+/', ' ', strip_tags($raw_desc)));
+                if (mb_strlen($clean_desc, 'UTF-8') > 150) {
+                    $clean_desc = mb_substr($clean_desc, 0, 147, 'UTF-8') . '...';
+                }
+                if (empty($clean_desc)) {
+                    $clean_desc = 'Áp dụng cho toàn bộ dòng sản phẩm Piano Cơ & Piano Điện cao cấp tại hệ thống Piano Nguyễn Duy.';
+                }
+                $start_str = !empty($top_promo['ngayBatDau']) ? date('d/m/Y', strtotime($top_promo['ngayBatDau'])) : '';
+                $end_str = !empty($top_promo['ngayKetThuc']) ? date('d/m/Y', strtotime($top_promo['ngayKetThuc'])) : '';
+            ?>
+                <div class="hero-content">
+                    <div class="promo-badge-tag">
+                        <span class="pulse-dot"></span>
+                        <span>Ưu Đãi Đang Diễn Ra</span>
+                    </div>
+                    <h1><?php echo $promo_title; ?></h1>
+                    <p><?php echo htmlspecialchars($clean_desc); ?></p>
+                    <div class="hero-promo-meta">
+                        <?php if ($start_str && $end_str): ?>
+                            <span class="hero-promo-time">
+                                <span class="material-symbols-rounded" style="font-size: 15px; color: #38bdf8;">event</span>
+                                <?php echo $start_str; ?> — <?php echo $end_str; ?>
+                            </span>
+                        <?php endif; ?>
+                        <?php if (count($active_promos) > 1): ?>
+                            <span class="hero-promo-time" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fde68a;">
+                                <span class="material-symbols-rounded" style="font-size: 15px; color: #fbbf24;">local_offer</span>
+                                +<?php echo (count($active_promos) - 1); ?> ưu đãi khác
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="hero-actions">
+                        <a href="cs_khuyenmai.php" class="btn-promo-primary">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">campaign</span>
+                            Chi tiết chương trình
+                        </a>
+                        <a href="hoadon_moi.php" class="btn-promo-outline">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">add_shopping_cart</span>
+                            Tạo hóa đơn áp dụng KM
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-discount-card">
+                    <span class="discount-label">Mức Giảm Tới</span>
+                    <span class="discount-val"><?php echo $discount_val > 0 ? ('-' . $discount_val . '%') : 'HOT'; ?></span>
+                    <span class="discount-sub">Áp dụng trực tiếp</span>
+                </div>
+            <?php else: ?>
+                <div class="hero-content">
+                    <div class="promo-badge-tag default">
+                        <span class="material-symbols-rounded" style="font-size: 13px;">verified</span>
+                        <span>Đặc Quyền Khách Hàng</span>
+                    </div>
+                    <h1>Hệ Thống Phân Phối Piano Cao Cấp — Nguyễn Duy</h1>
+                    <p>Cam kết 100% nhạc cụ chính hãng nhập khẩu Nhật Bản & Châu Âu. Dịch vụ bảo dưỡng 5 năm tận nhà cùng chính sách hỗ trợ trả góp 0% lãi suất trên toàn hệ thống showroom.</p>
+                    <div class="hero-actions">
+                        <a href="cs_khuyenmai.php" class="btn-promo-primary">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span>
+                            Tạo chương trình ưu đãi
+                        </a>
+                        <a href="hoadon_moi.php" class="btn-promo-outline">
+                            <span class="material-symbols-rounded" style="font-size: 16px;">add_shopping_cart</span>
+                            Lập hóa đơn mới
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-discount-card">
+                    <span class="discount-label" style="color: #38bdf8;">Bảo Dưỡng</span>
+                    <span class="discount-val" style="color: #38bdf8; text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);">5 Năm</span>
+                    <span class="discount-sub">Miễn phí trọn gói</span>
+                </div>
+            <?php endif; ?>
         </div>
 
-        <!-- 2. KPI Row (Premium UI) -->
+        <!-- 2. KPI Row (Corporate & Clean UI) -->
         <div class="premium-kpi-row">
             <?php if ($role_id == 1) { ?>   
+                <!-- KPI 1: Doanh Thu Tháng -->
                 <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">payments</span>
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('monthly_revenue'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('monthly_revenue'); ?></p>
-                        <h3><?php echo number_format($doanh_thu, 0, ',', '.'); ?>đ</h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">trending_up</span>
-                            Thực thu: <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo number_format($doanh_thu, 0, ',', '.'); ?><span class="kpi-unit">đ</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">insights</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #10b981;">trending_up</span>
+                            Thực thu:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #10b981;">
+                            <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ
                         </span>
                     </div>
                 </div>
+
+                <!-- KPI 2: Yêu Cầu Chờ Duyệt -->
                 <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2); cursor: pointer;" onclick="window.location.href='duyet_phieu.php'">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">pending_actions</span>
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('pending_requests'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('pending_requests'); ?></p>
-                        <h3><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #ef4444;">error</span>
-                            Bao gồm hóa đơn & phiếu
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">y/c</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">rule_folder</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #ef4444;">error_outline</span>
+                            Chờ xử lý:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #ef4444;">
+                            Hóa đơn & phiếu
                         </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">inventory_2</span>
+                <!-- KPI 3: Tổng Đàn Trong Kho -->
+                <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);" onclick="window.location.href='tonkho_hientai.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('total_pianos'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('total_pianos'); ?></p>
-                        <h3><?php echo number_format($tong_dan, 0, ',', '.'); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #3b82f6;">account_balance_wallet</span>
-                            Vốn: <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo number_format($tong_dan, 0, ',', '.'); ?><span class="kpi-unit">cây</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">warehouse</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #3b82f6;">account_balance_wallet</span>
+                            Tổng giá vốn:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #3b82f6;">
+                            <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ
                         </span>
                     </div>
                 </div>
-                <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">priority_high</span>
+
+                <!-- KPI 4: Sản Phẩm Sắp Hết -->
+                <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);" onclick="window.location.href='tonkho_hientai.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('low_stock'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('low_stock'); ?></p>
-                        <h3><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #f59e0b;">warning</span>
-                            Mẫu mã &lt;= 5 serial
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">mẫu</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">crisis_alert</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #f59e0b;">warning_amber</span>
+                            Mức tồn:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #f59e0b;">
+                            ≤ 5 serial/mẫu
                         </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">local_shipping</span>
+                <!-- KPI 5: Đơn Đang Xử Lý -->
+                <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);" onclick="window.location.href='phieuxuat.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title">ĐƠN ĐANG XỬ LÝ</p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p>Đơn đang xử lý</p>
-                        <h3><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #8b5cf6;">hourglass_top</span>
-                            Chờ duyệt / Đang giao
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">đơn</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">pending_actions</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #8b5cf6;">schedule</span>
+                            Trạng thái:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #8b5cf6;">
+                            Chờ duyệt / Giao
                         </span>
                     </div>
                 </div>

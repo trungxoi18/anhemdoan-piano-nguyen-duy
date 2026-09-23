@@ -67,7 +67,7 @@ if (is_file(__DIR__ . '/ai_config.php')) {
 // Không đưa API key vào chat_widget.php hay tro_ly.php.
 $apiKey = trim((string) (getenv('GEMINI_API_KEY') ?: ($settings['api_key'] ?? '')));
 $model = (string) (getenv('GEMINI_MODEL') ?: ($settings['model'] ?? 'gemini-3.5-flash-lite'));
-if ($apiKey === '') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Hãy cấu hình API key để sử dụng AI.', 503); }
+if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng nhờ quản trị viên cấu hình để sử dụng AI.', 503); }
 if (!preg_match('/^[a-zA-Z0-9._-]+$/D', $model)) { sendResponse('Cấu hình GEMINI_MODEL không hợp lệ.', 503); }
 if (!function_exists('curl_init')) { sendResponse('Máy chủ chưa bật extension PHP cURL.', 503); }
 
@@ -167,9 +167,14 @@ $history = $threads[$id]['messages'] ?? [];
 $contents = $history;
 $contents[] = ['role' => 'user', 'parts' => [['text' => $message]]];
 $thinkingLevel = strtoupper((string) (getenv('GEMINI_THINKING_LEVEL') ?: ($settings['thinking_level'] ?? 'LOW')));
+<<<<<<< HEAD
 $generationConfig = ['temperature' => 0.4, 'maxOutputTokens' => 4096];
 if (in_array($thinkingLevel, ['LOW', 'MEDIUM', 'HIGH'], true)) {
     $generationConfig['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
+=======
+if (in_array($model, ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'], true) && in_array($thinkingLevel, ['LOW', 'MEDIUM', 'HIGH'], true)) {
+    $config['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
+>>>>>>> 9a507a8 (Redesign Hero banner with Grand Piano background and dynamic promotions showcase)
 }
 $payload = json_encode([
     'systemInstruction' => ['parts' => [['text' => $system]]],
