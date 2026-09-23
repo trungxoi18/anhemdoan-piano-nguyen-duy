@@ -67,7 +67,7 @@ if (is_file(__DIR__ . '/ai_config.php')) {
 // Không đưa API key vào chat_widget.php hay tro_ly.php.
 $apiKey = trim((string) (getenv('GEMINI_API_KEY') ?: ($settings['api_key'] ?? '')));
 $model = (string) (getenv('GEMINI_MODEL') ?: ($settings['model'] ?? 'gemini-3.5-flash-lite'));
-if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng nhờ quản trị viên cấu hình để sử dụng AI.', 503); }
+if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng cấu hình API key để sử dụng AI.', 503); }
 if (!preg_match('/^[a-zA-Z0-9._-]+$/D', $model)) { sendResponse('Cấu hình GEMINI_MODEL không hợp lệ.', 503); }
 if (!function_exists('curl_init')) { sendResponse('Máy chủ chưa bật extension PHP cURL.', 503); }
 

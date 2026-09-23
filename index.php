@@ -57,11 +57,11 @@ if($res_dt && $row = $res_dt->fetch_assoc()) {
     $doanh_thu_thuc_te = $row['total_thuc_te'] ?? 0;
 }
 
-// 4. Yêu cầu chờ duyệt (Phiếu nhập, Phiếu xuất, Phiếu điều chuyển)
+// 4. Yêu cầu chờ duyệt (Bao gồm Hóa đơn, Phiếu nhập, Phiếu xuất)
 $sql_yc = "SELECT 
+            (SELECT COUNT(*) FROM HoaDon WHERE trangThai = 'Chờ duyệt') +
             (SELECT COUNT(*) FROM PhieuNhap WHERE trangThai = 'Chờ duyệt') + 
-            (SELECT COUNT(*) FROM PhieuXuat WHERE trangThai = 'Chờ duyệt') +
-            (SELECT COUNT(*) FROM PhieuDieuChuyen WHERE trangThai = 'Chờ duyệt') AS total";
+            (SELECT COUNT(*) FROM PhieuXuat WHERE trangThai = 'Chờ duyệt') AS total";
 $res_yc = $conn->query($sql_yc);
 if($res_yc && $row = $res_yc->fetch_assoc()) { 
     $yeu_cau_cho = $row['total'] ?? 0; 
@@ -209,11 +209,11 @@ if ($res_top) {
 // Cho Admin: Phiếu chờ duyệt
 $list_cho_duyet = [];
 if ($role_id == 1) {
-    $res_cd = $conn->query("(SELECT 'Phiếu xuất' as loai, maPhieuXuat as id, ngayXuat as thoiGian FROM phieuxuat WHERE trangThai = 'Chờ duyệt')
+    $res_cd = $conn->query("(SELECT 'Hóa đơn' as loai, maHoaDon as id, ngayLap as thoiGian FROM hoadon WHERE trangThai = 'Chờ duyệt')
+                            UNION ALL
+                            (SELECT 'Phiếu xuất' as loai, maPhieuXuat as id, ngayXuat as thoiGian FROM phieuxuat WHERE trangThai = 'Chờ duyệt')
                             UNION ALL
                             (SELECT 'Phiếu nhập' as loai, maPhieuNhap as id, ngayNhap as thoiGian FROM phieunhap WHERE trangThai = 'Chờ duyệt')
-                            UNION ALL
-                            (SELECT 'Phiếu điều chuyển' as loai, maPhieuDC as id, ngayTao as thoiGian FROM phieudieuchuyen WHERE trangThai = 'Chờ duyệt')
                             ORDER BY thoiGian DESC LIMIT 5");
     if ($res_cd) while ($r = $res_cd->fetch_assoc()) $list_cho_duyet[] = $r;
 }
@@ -289,77 +289,129 @@ if ($res_policies) {
             <p>Chào mừng trở lại bảng điều khiển hệ thống quản lý. Tại đây bạn có thể kiểm soát mọi hoạt động kinh doanh, tồn kho và các dịch vụ sau bán hàng một cách trực quan nhất.</p>
         </div>
 
-        <!-- 2. KPI Row (Premium UI) -->
+        <!-- 2. KPI Row (Corporate & Clean UI) -->
         <div class="premium-kpi-row">
             <?php if ($role_id == 1) { ?>   
+                <!-- KPI 1: Doanh Thu Tháng -->
                 <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">payments</span>
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('monthly_revenue'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('monthly_revenue'); ?></p>
-                        <h3><?php echo number_format($doanh_thu, 0, ',', '.'); ?>đ</h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">trending_up</span>
-                            Thực thu: <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo number_format($doanh_thu, 0, ',', '.'); ?><span class="kpi-unit">đ</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">insights</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #10b981;">trending_up</span>
+                            Thực thu:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #10b981;">
+                            <?php echo number_format($doanh_thu_thuc_te, 0, ',', '.'); ?>đ
                         </span>
                     </div>
                 </div>
+
+                <!-- KPI 2: Yêu Cầu Chờ Duyệt -->
                 <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2); cursor: pointer;" onclick="window.location.href='duyet_phieu.php'">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">pending_actions</span>
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('pending_requests'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('pending_requests'); ?></p>
-                        <h3><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #ef4444;">error</span>
-                            Phiếu nhập, xuất & điều chuyển
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($yeu_cau_cho, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">y/c</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">rule_folder</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #ef4444;">error_outline</span>
+                            Chờ xử lý:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #ef4444;">
+                            Hóa đơn & phiếu
                         </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">inventory_2</span>
+                <!-- KPI 3: Tổng Đàn Trong Kho -->
+                <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);" onclick="window.location.href='tonkho_hientai.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('total_pianos'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('total_pianos'); ?></p>
-                        <h3><?php echo number_format($tong_dan, 0, ',', '.'); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #3b82f6;">account_balance_wallet</span>
-                            Vốn: <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo number_format($tong_dan, 0, ',', '.'); ?><span class="kpi-unit">cây</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">warehouse</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #3b82f6;">account_balance_wallet</span>
+                            Tổng giá vốn:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #3b82f6;">
+                            <?php echo number_format($tong_gia_tri_kho, 0, ',', '.'); ?>đ
                         </span>
                     </div>
                 </div>
-                <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">priority_high</span>
+
+                <!-- KPI 4: Sản Phẩm Sắp Hết -->
+                <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);" onclick="window.location.href='tonkho_hientai.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title"><?php echo __('low_stock'); ?></p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p><?php echo __('low_stock'); ?></p>
-                        <h3><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #f59e0b;">warning</span>
-                            Mẫu mã &lt;= 5 serial
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($sap_het, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">mẫu</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">crisis_alert</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #f59e0b;">warning_amber</span>
+                            Mức tồn:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #f59e0b;">
+                            ≤ 5 serial/mẫu
                         </span>
                     </div>
                 </div>
             <?php } ?>
 
             <?php if ($role_id == 1 || $role_id == 2) {  ?>
-                <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);">
-                    <div class="premium-kpi-icon">
-                        <span class="material-symbols-rounded">local_shipping</span>
+                <!-- KPI 5: Đơn Đang Xử Lý -->
+                <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);" onclick="window.location.href='phieuxuat.php'">
+                    <div class="kpi-card-header">
+                        <p class="kpi-title">ĐƠN ĐANG XỬ LÝ</p>
                     </div>
-                    <div class="premium-kpi-info">
-                        <p>Đơn đang xử lý</p>
-                        <h3><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?></h3>
-                        <span class="kpi-sub">
-                            <span class="material-symbols-rounded" style="font-size: 16px; color: #8b5cf6;">hourglass_top</span>
-                            Chờ duyệt / Đang giao
+                    <div class="kpi-card-body">
+                        <div class="kpi-card-val-wrap">
+                            <h3><?php echo str_pad($don_dang_xu_ly, 2, '0', STR_PAD_LEFT); ?><span class="kpi-unit">đơn</span></h3>
+                        </div>
+                        <div class="premium-kpi-icon">
+                            <span class="material-symbols-rounded">pending_actions</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card-footer">
+                        <span class="kpi-sub-left">
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #8b5cf6;">schedule</span>
+                            Trạng thái:
+                        </span>
+                        <span class="kpi-sub-right" style="color: #8b5cf6;">
+                            Chờ duyệt / Giao
                         </span>
                     </div>
                 </div>

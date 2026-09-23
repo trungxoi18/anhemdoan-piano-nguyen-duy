@@ -547,16 +547,19 @@ tr:hover td { background: var(--bg-card-hover); }
     overflow: hidden; 
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03); 
     border: 1px solid var(--border); 
-    border-top: 3px solid var(--card-color, var(--accent)); /* Điểm nhấn sắc nét mép trên */
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
     cursor: pointer; 
     z-index: 1; 
 }
 
 .premium-kpi-card:hover { 
-    transform: translateY(-4px); 
-    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04); 
-    border-color: var(--card-color, var(--accent)); 
+    transform: translateY(-3px); 
+    box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04); 
+    border-color: rgba(0, 0, 0, 0.15); 
+}
+
+[data-theme="dark"] .premium-kpi-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Tiêu đề đặt trên cùng, căn giữa, có gạch chân mờ bên dưới */
@@ -2837,231 +2840,50 @@ tr:hover td { background: var(--bg-card-hover); }
             color: var(--accent);
         }
     
-/* === HERO BANNER (GRAND PIANO & PROMO SHOWCASE) === */
+/* === HERO BANNER === */
 .hero-banner {
     position: relative;
-    padding: 32px 36px;
-    border-radius: 10px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 48px;
+    border-radius: var(--radius-xl);
+    margin-bottom: 32px;
+    border: 1px solid var(--glass-border);
     overflow: hidden;
-    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35);
-    background: #0f172a url('../images/hero_grand_piano.jpg') right center / cover no-repeat;
+    box-shadow: var(--shadow-md);
+    background: url('../images/hero_banner_piano.jpg') center/cover no-repeat;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 200px;
-    gap: 24px;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 220px;
 }
 
 .hero-banner::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.85) 50%, rgba(15, 23, 42, 0.38) 100%);
+    background: linear-gradient(90deg, rgba(15, 13, 26, 0.95) 0%, rgba(15, 13, 26, 0.6) 50%, rgba(15, 13, 26, 0.2) 100%);
+    backdrop-filter: blur(3px);
     z-index: 1;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    flex: 1;
-    max-width: 680px;
-}
-
-.promo-badge-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 6px;
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 10px;
-}
-
-.promo-badge-tag.default {
-    background: rgba(14, 165, 233, 0.2);
-    border-color: rgba(14, 165, 233, 0.4);
-    color: #7dd3fc;
-}
-
-.promo-badge-tag .pulse-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 8px #ef4444;
-    animation: pulseGlow 1.5s infinite;
-}
-
-@keyframes pulseGlow {
-    0% { transform: scale(0.9); opacity: 0.8; }
-    50% { transform: scale(1.3); opacity: 1; }
-    100% { transform: scale(0.9); opacity: 0.8; }
 }
 
 .hero-banner h1 {
     position: relative;
-    margin: 0 0 8px 0;
-    font-size: 1.55rem;
+    z-index: 2;
+    margin: 0 0 12px 0;
+    font-size: 2.2rem;
     font-weight: 800;
-    color: #ffffff;
-    line-height: 1.3;
-    letter-spacing: -0.3px;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
 }
 
 .hero-banner p {
     position: relative;
-    margin: 0 0 14px 0;
-    font-size: 13px;
-    color: rgba(241, 245, 249, 0.9);
-    line-height: 1.55;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    max-width: 620px;
-}
-
-.hero-promo-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    position: relative;
     z-index: 2;
-}
-
-.hero-promo-time {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.08);
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.hero-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    position: relative;
-    z-index: 2;
-}
-
-.btn-promo-primary {
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-    color: #ffffff !important;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    text-decoration: none !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.btn-promo-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.45);
-    background: linear-gradient(135deg, #0284c7, #0369a1);
-}
-
-.btn-promo-outline {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff !important;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    text-decoration: none !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.2s ease;
-}
-
-.btn-promo-outline:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-/* Discount Badge bên phải */
-.hero-discount-card {
-    position: relative;
-    z-index: 2;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 16px 22px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 155px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0;
-}
-
-.hero-discount-card .discount-label {
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #f59e0b;
-    margin-bottom: 2px;
-}
-
-.hero-discount-card .discount-val {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #ffffff;
-    line-height: 1;
-    margin: 4px 0;
-    text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
-}
-
-.hero-discount-card .discount-sub {
-    font-size: 10.5px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-@media (max-width: 768px) {
-    .hero-banner {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 24px 20px;
-        gap: 18px;
-    }
-    .hero-discount-card {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 12px 18px;
-    }
-    .hero-discount-card .discount-val {
-        font-size: 1.8rem;
-        margin: 0;
-    }
+    margin: 0;
+    font-size: 15px;
+    color: rgba(255,255,255,0.9);
+    max-width: 600px;
+    line-height: 1.6;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
 /* === MODERN FOOTER === */
