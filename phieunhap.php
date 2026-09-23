@@ -449,9 +449,14 @@ $history_result = $conn->query($sql_history);
                                 <td style="color: var(--success); font-weight: 600;"><?= number_format($row['tongTienNhap']) ?>đ</td>
                                 <td><?= htmlspecialchars($row['hoTen'] ?? 'N/A') ?></td>
                                 <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
-                                <td>
+                                <td style="white-space: nowrap;">
+                                    <a href="xuat_pdf.php?type=phieunhap&id=<?= $row['maPhieuNhap'] ?>" target="_blank" class="btn-action" style="padding: 6px 10px; background: rgba(14, 165, 233, 0.1); color: #0284c7; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-right: 4px;" title="Xem & In PDF Phiếu Nhập">
+                                        <span class="material-symbols-rounded" style="font-size: 16px;">picture_as_pdf</span> Xem PDF
+                                    </a>
                                     <?php if ($row['trangThai'] == 'Chờ duyệt'): ?>
-                                        <a href="sua_phieunhap.php?id=<?= $row['maPhieuNhap'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(52, 211, 153, 0.1); color: var(--staff-text); font-size: 13px;">Sửa phiếu</a>
+                                        <a href="sua_phieunhap.php?id=<?= $row['maPhieuNhap'] ?>" class="btn-action" style="padding: 6px 10px; background: rgba(52, 211, 153, 0.1); color: var(--staff-text); font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span class="material-symbols-rounded" style="font-size: 16px;">edit</span> Sửa
+                                        </a>
                                     <?php endif; ?>
                                 </td>
                             </tr>

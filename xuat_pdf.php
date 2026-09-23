@@ -332,6 +332,37 @@ if ($type == 'hoadon') {
             $diaChiKho = $k['diaChi'];
         }
     }
+} elseif ($type == 'dieuchuyen' || $type == 'phieudieuchuyen') {
+    $title = "PHIẾU ĐIỀU CHUYỂN KHO";
+    // Lấy thông tin phiếu điều chuyển
+    $sql_dc = "SELECT p.*, k1.tenKho as khoXuat, k1.diaChi as diaChiKhoXuat, 
+                      k2.tenKho as khoNhap, k2.diaChi as diaChiKhoNhap, 
+                      nv.hoTen as tenNV 
+               FROM phieudieuchuyen p 
+               LEFT JOIN kho k1 ON p.maKhoXuat = k1.maKho 
+               LEFT JOIN kho k2 ON p.maKhoNhap = k2.maKho 
+               LEFT JOIN nhanvien nv ON p.maNhanVienLap = nv.maNhanVien 
+               WHERE p.maPhieuDC = ?";
+    $stmt = $conn->prepare($sql_dc);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res->num_rows == 0) { die("Không tìm thấy Phiếu Điều Chuyển!"); }
+    $data = $res->fetch_assoc();
+
+    // Lấy chi tiết sản phẩm điều chuyển
+    $sql_ct = "SELECT ct.*, ds.soSerial, ds.tinhTrang, ds.giaBan, md.tenMau, hd_hang.tenHang 
+               FROM chitietdieuchuyen ct 
+               JOIN danserial ds ON ct.maSerial = ds.maSerial 
+               JOIN maudan md ON ds.maMau = md.maMau 
+               JOIN hangdan hd_hang ON md.maHang = hd_hang.maHang 
+               WHERE ct.maPhieuDC = ?";
+    $stmt_ct = $conn->prepare($sql_ct);
+    $stmt_ct->bind_param("i", $id);
+    $stmt_ct->execute();
+    $res_ct = $stmt_ct->get_result();
+    while($row = $res_ct->fetch_assoc()){ $details[] = $row; }
+
 } elseif (in_array($type, ['baotri_tiepnhan', 'baotri_nhap', 'baotri_xuat'])) {
     if ($type == 'baotri_tiepnhan') $title = "PHIẾU TIẾP NHẬN BẢO TRÍ";
     elseif ($type == 'baotri_nhap') $title = "PHIẾU NHẬP KHO BẢO TRÍ";
@@ -1224,6 +1255,143 @@ if ($type == 'hoadon') {
             <div>
                 <strong>Giám đốc</strong>
                 <em>(Ký, họ tên)</em>
+            </div>
+        </div>
+    </div>
+    
+    <?php elseif ($type == 'dieuchuyen' || $type == 'phieudieuchuyen'): ?>
+    
+    <style>
+        .dc-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-family: "Times New Roman", Times, serif; }
+        .dc-left { width: 45%; }
+        .dc-left p { margin: 3px 0; font-size: 14px; }
+        .dc-left strong { font-weight: bold; }
+        .dc-center { width: 30%; text-align: center; }
+        .dc-center h1 { color: #000; font-size: 20px; margin: 0 0 5px 0; text-transform: uppercase; font-weight: bold; }
+        .dc-center p { margin: 3px 0; font-style: italic; font-size: 14px; }
+        .dc-right { width: 25%; text-align: center; font-size: 14px; }
+        .dc-right p { margin: 3px 0; }
+        .dc-info { font-family: "Times New Roman", Times, serif; font-size: 15px; line-height: 1.7; margin-bottom: 15px; }
+        .dc-table { width: 100%; border-collapse: collapse; font-family: "Times New Roman", Times, serif; font-size: 14px; margin-bottom: 15px; }
+        .dc-table th, .dc-table td { border: 1px solid #000; padding: 6px 4px; text-align: center; }
+        .dc-table th { font-weight: bold; background: #f5f5f5; }
+        .dc-table td.text-left { text-align: left; }
+        .dc-table td.text-right { text-align: right; }
+        .dc-footer { font-family: "Times New Roman", Times, serif; font-size: 15px; margin-bottom: 15px; }
+        .dc-signs { display: flex; justify-content: space-between; text-align: center; font-family: "Times New Roman", Times, serif; margin-top: 10px; }
+        .dc-signs > div { width: 19%; }
+        .dc-signs strong { display: block; font-size: 13px; }
+        .dc-signs em { display: block; font-size: 12px; margin-bottom: 65px; }
+    </style>
+    
+    <div class="page-a4" style="color: #000;">
+        <div class="dc-header">
+            <div class="dc-left">
+                <p><strong>Đơn vị:</strong> CÔNG TY TNHH NGHỆ THUẬT VÀ<br>NHẠC CỤ PIANO NGUYỄN DUY</p>
+                <p><strong>Mã số thuế:</strong> ..............................................................</p>
+                <p><strong>Địa chỉ:</strong> Số 53 đường Lạch Tray, Phường Lạch Tray, Quận Ngô Quyền, TP. Hải Phòng</p>
+                <p><strong>Bộ phận:</strong> Quản lý Kho & Logistics</p>
+            </div>
+            <div class="dc-center">
+                <h1>PHIẾU ĐIỀU CHUYỂN KHO</h1>
+                <p>Ngày <?= !empty($data['ngayTao']) ? date('d', strtotime($data['ngayTao'])) : '...' ?> tháng <?= !empty($data['ngayTao']) ? date('m', strtotime($data['ngayTao'])) : '...' ?> năm <?= !empty($data['ngayTao']) ? date('Y', strtotime($data['ngayTao'])) : '...' ?></p>
+                <p>Số: <?= str_pad($data['maPhieuDC'], 5, '0', STR_PAD_LEFT) ?></p>
+            </div>
+            <div class="dc-right">
+                <p><strong>Mẫu số: 03 - VT</strong></p>
+                <p style="font-style: italic;">(Ban hành theo QĐ nội bộ<br>Quản lý kho liên chi nhánh)</p>
+                <p style="text-align: left; margin-top: 10px; padding-left: 20px;">Trạng thái: <strong><?= htmlspecialchars($data['trangThai']) ?></strong></p>
+            </div>
+        </div>
+
+        <div class="dc-info">
+            <div>- Người lập lệnh điều chuyển: <strong><?= htmlspecialchars($data['tenNV'] ?? 'N/A') ?></strong></div>
+            <div>- Xuất từ kho: <strong><?= htmlspecialchars($data['khoXuat'] ?? 'N/A') ?></strong> <?= !empty($data['diaChiKhoXuat']) ? '(' . htmlspecialchars($data['diaChiKhoXuat']) . ')' : '' ?></div>
+            <div>- Nhập đến kho: <strong><?= htmlspecialchars($data['khoNhap'] ?? 'N/A') ?></strong> <?= !empty($data['diaChiKhoNhap']) ? '(' . htmlspecialchars($data['diaChiKhoNhap']) . ')' : '' ?></div>
+            <div>- Lý do / Nội dung điều chuyển: <?= htmlspecialchars($data['ghiChu'] ?? 'Điều chuyển nội bộ phục vụ kinh doanh / cân đối kho') ?></div>
+        </div>
+
+        <table class="dc-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">STT</th>
+                    <th>Tên, nhãn hiệu đàn, Model</th>
+                    <th>Hãng sản xuất</th>
+                    <th>Mã số (Serial đàn)</th>
+                    <th style="width: 60px;">ĐVT</th>
+                    <th style="width: 80px;">Số lượng</th>
+                    <th>Tình trạng</th>
+                    <th>Ghi chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                $stt = 1;
+                $sum_qty = 0;
+                foreach ($details as $row): 
+                    $sum_qty++;
+                ?>
+                <tr>
+                    <td><?= $stt++ ?></td>
+                    <td class="text-left"><strong><?= htmlspecialchars($row['tenMau']) ?></strong></td>
+                    <td><?= htmlspecialchars($row['tenHang']) ?></td>
+                    <td><strong style="font-family: monospace; font-size: 14px;"><?= htmlspecialchars($row['soSerial']) ?></strong></td>
+                    <td>Cây</td>
+                    <td>1</td>
+                    <td><?= htmlspecialchars($row['tinhTrang'] ?? 'Tốt / Nguyên vẹn') ?></td>
+                    <td><?= htmlspecialchars($data['ghiChu'] ?? '') ?></td>
+                </tr>
+                <?php endforeach; ?>
+                
+                <?php for($i=$stt; $i<=6; $i++): ?>
+                <tr>
+                    <td><?= $i ?></td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                <?php endfor; ?>
+
+                <tr style="font-weight: bold; background: #fafafa;">
+                    <td colspan="5" style="text-align: right; padding-right: 15px;">Tổng cộng số lượng xuất điều chuyển:</td>
+                    <td><?= $sum_qty ?></td>
+                    <td colspan="2">Cây đàn</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="dc-footer">
+            <p><strong>Tổng số lượng (viết bằng chữ):</strong> <em><?= $sum_qty > 0 ? $sum_qty . ' cây đàn piano nguyên chiếc' : 'Không cây' ?></em></p>
+        </div>
+
+        <div class="dc-signs">
+            <div>
+                <strong>NGƯỜI LẬP PHIẾU</strong>
+                <em>(Ký, họ tên)</em>
+                <br><br><br>
+                <span><?= htmlspecialchars($data['tenNV'] ?? '') ?></span>
+            </div>
+            <div>
+                <strong>THỦ KHO XUẤT</strong>
+                <em>(Ký, họ tên)</em>
+                <br><br><br>
+                <span>............................</span>
+            </div>
+            <div>
+                <strong>NGƯỜI VẬN CHUYỂN</strong>
+                <em>(Ký, họ tên)</em>
+                <br><br><br>
+                <span>............................</span>
+            </div>
+            <div>
+                <strong>THỦ KHO NHẬP</strong>
+                <em>(Ký, họ tên)</em>
+                <br><br><br>
+                <span>............................</span>
+            </div>
+            <div>
+                <strong>BAN GIÁM ĐỐC / DUYỆT</strong>
+                <em>(Ký, đóng dấu)</em>
+                <br><br><br>
+                <span>............................</span>
             </div>
         </div>
     </div>

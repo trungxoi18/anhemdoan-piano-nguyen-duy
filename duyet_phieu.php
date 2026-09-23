@@ -173,6 +173,7 @@ $title = 'Phê Duyệt Phiếu';
                                     <div class="detail-item"><span>Ghi chú</span><?= htmlspecialchars($dc['ghiChu'] ?? 'N/A') ?></div>
                                 </div>
                                 <div class="action-buttons">
+                                    <a href="xuat_pdf.php?type=dieuchuyen&id=<?= $dc['maPhieuDC'] ?>" target="_blank" class="btn btn-view"><span class="material-symbols-rounded">visibility</span> Xem chi tiết</a>
                                     <form method="POST" action="duyet_action.php" style="display:inline;">
                                         <input type="hidden" name="type" value="dieuchuyen">
                                         <input type="hidden" name="id" value="<?= $dc['maPhieuDC'] ?>">

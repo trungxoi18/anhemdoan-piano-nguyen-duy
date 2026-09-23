@@ -205,16 +205,21 @@ $history_result = $conn->query($sql_history);
                             <?php while($row = $history_result->fetch_assoc()): ?>
                             <tr>
                                 <td><strong>#<?= $row['maPhieuDC'] ?></strong></td>
-                                <td><?= date('d/m/Y H:i', strtotime($row['ngayLap'])) ?></td>
+                                <td><?= !empty($row['ngayTao']) ? date('d/m/Y H:i', strtotime($row['ngayTao'])) : 'N/A' ?></td>
                                 <td><?= htmlspecialchars($row['khoXuat'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($row['khoNhap'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($row['ghiChu'] ?? 'N/A') ?></td>
                                 <td><?= $row['soLuong'] ?> SP</td>
                                 <td><?= htmlspecialchars($row['hoTen'] ?? 'N/A') ?></td>
                                 <td><span class="status-badge <?= str_replace(' ', '.', $row['trangThai']) ?>"><?= $row['trangThai'] ?></span></td>
-                                <td>
+                                <td style="white-space: nowrap;">
+                                    <a href="xuat_pdf.php?type=dieuchuyen&id=<?= $row['maPhieuDC'] ?>" target="_blank" class="btn-action" style="padding: 6px 10px; background: rgba(14, 165, 233, 0.1); color: #0284c7; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-right: 4px;" title="Xem & In PDF Phiếu Điều Chuyển">
+                                        <span class="material-symbols-rounded" style="font-size: 16px;">picture_as_pdf</span> Xem PDF
+                                    </a>
                                     <?php if ($row['trangThai'] == 'Chờ duyệt'): ?>
-                                        <a href="sua_dieuchuyen.php?id=<?= $row['maPhieuDC'] ?>" class="btn-action" style="padding: 6px 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 13px;">Sửa phiếu</a>
+                                        <a href="sua_dieuchuyen.php?id=<?= $row['maPhieuDC'] ?>" class="btn-action" style="padding: 6px 10px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span class="material-symbols-rounded" style="font-size: 16px;">edit</span> Sửa
+                                        </a>
                                     <?php endif; ?>
                                 </td>
                             </tr>
