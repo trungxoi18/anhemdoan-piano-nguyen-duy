@@ -545,21 +545,18 @@ tr:hover td { background: var(--bg-card-hover); }
     flex-direction: column; 
     position: relative; 
     overflow: hidden; 
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02); 
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03); 
     border: 1px solid var(--border); 
+    border-top: 3px solid var(--card-color, var(--accent)); /* Điểm nhấn sắc nét mép trên */
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
     cursor: pointer; 
     z-index: 1; 
 }
 
 .premium-kpi-card:hover { 
-    transform: translateY(-3px); 
-    box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04); 
-    border-color: rgba(0, 0, 0, 0.15); 
-}
-
-[data-theme="dark"] .premium-kpi-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px); 
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04); 
+    border-color: var(--card-color, var(--accent)); 
 }
 
 /* Tiêu đề đặt trên cùng, căn giữa, có gạch chân mờ bên dưới */
