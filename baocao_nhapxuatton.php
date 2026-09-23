@@ -293,22 +293,98 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             </div>
         </form>
 
-        <div class="summary-cards">
-            <div class="summary-card">
-                <span>Tổng Tồn Đầu Kỳ</span>
-                <strong><?= number_format($tongTonDau) ?></strong>
+        <!-- 4 KPI Summary Cards (Corporate & Clean UI) -->
+        <div class="premium-kpi-row" style="margin-bottom: 24px;">
+            <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG TỒN ĐẦU KỲ</p>
+                </div>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($tongTonDau) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">inventory</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #3b82f6;">calendar_today</span>
+                        Thời điểm:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #3b82f6;">
+                        Đầu kỳ báo cáo
+                    </span>
+                </div>
             </div>
-            <div class="summary-card">
-                <span>Tổng Nhập Trong Kỳ</span>
-                <strong style="color: #34d399;"><?= number_format($tongNhap) ?></strong>
+
+            <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG NHẬP TRONG KỲ</p>
+                </div>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3 style="color: #10b981;"><?= number_format($tongNhap) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">move_to_inbox</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #10b981;">add_circle</span>
+                        Biến động:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #10b981;">
+                        Nhập mới & Điều chuyển đến
+                    </span>
+                </div>
             </div>
-            <div class="summary-card">
-                <span>Tổng Xuất Trong Kỳ</span>
-                <strong style="color: #f87171;"><?= number_format($tongXuat) ?></strong>
+
+            <div class="premium-kpi-card" style="--card-color: #ef4444; --card-bg-light: #fef2f2; --card-shadow-hover: rgba(239, 68, 68, 0.2);">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG XUẤT TRONG KỲ</p>
+                </div>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3 style="color: #ef4444;"><?= number_format($tongXuat) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">outbox</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #ef4444;">remove_circle</span>
+                        Biến động:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #ef4444;">
+                        Bán lẻ & Điều chuyển đi
+                    </span>
+                </div>
             </div>
-            <div class="summary-card accent">
-                <span>Tổng Tồn Cuối Kỳ</span>
-                <strong><?= number_format($tongTonCuoi) ?></strong>
+
+            <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG TỒN CUỐI KỲ</p>
+                </div>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($tongTonCuoi) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">warehouse</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #8b5cf6;">verified</span>
+                        Trạng thái:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #8b5cf6;">
+                        Tồn thực tế hiện tại
+                    </span>
+                </div>
             </div>
         </div>
 

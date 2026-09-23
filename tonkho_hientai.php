@@ -99,41 +99,88 @@ if ($result) {
             </div>
         </div>
 
-        <!-- 3 KPI Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <?php 
+        $buildTabUrl = function($tab) use ($selected_kho, $search) {
+            $params = ['tab' => $tab];
+            if ($selected_kho > 0) $params['ma_kho'] = $selected_kho;
+            if (!empty($search)) $params['search'] = $search;
+            return 'tonkho_hientai.php?' . http_build_query($params);
+        };
+        ?>
+
+        <!-- 3 KPI Cards (Corporate & Clean UI) -->
+        <div class="premium-kpi-row" style="margin-bottom: 24px;">
             <!-- KPI 1: Hàng sẵn sàng bán -->
-            <div style="background: var(--bg-card); padding: 20px 24px; border-radius: var(--radius-xl); border: 1px solid rgba(52, 211, 153, 0.3); border-left: 5px solid #10b981; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <div style="font-size: 12px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px;">Hàng Sẵn Sàng Bán</div>
-                    <div style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-top: 4px;"><?= number_format($qty_sales) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span></div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Trạng thái: Trong kho</div>
+            <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);" onclick="window.location.href='<?= $buildTabUrl('sales') ?>'">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">HÀNG SẴN SÀNG BÁN</p>
                 </div>
-                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #10b981;">
-                    <span class="material-symbols-rounded" style="font-size: 26px;">check_circle</span>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($qty_sales) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">check_circle</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #10b981;">inventory_2</span>
+                        Trạng thái:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #10b981;">
+                        Trong kho & sẵn sàng
+                    </span>
                 </div>
             </div>
 
             <!-- KPI 2: Hàng bảo trì lưu kho -->
-            <div style="background: var(--bg-card); padding: 20px 24px; border-radius: var(--radius-xl); border: 1px solid rgba(245, 158, 11, 0.3); border-left: 5px solid #f59e0b; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <div style="font-size: 12px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">Hàng Bảo Trì Lưu Kho</div>
-                    <div style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-top: 4px;"><?= number_format($qty_baotri) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span></div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Khách gửi sửa chữa / bảo hành</div>
+            <div class="premium-kpi-card" style="--card-color: #f59e0b; --card-bg-light: #fffbeb; --card-shadow-hover: rgba(245, 158, 11, 0.2);" onclick="window.location.href='<?= $buildTabUrl('baotri') ?>'">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">HÀNG BẢO TRÌ LƯU KHO</p>
                 </div>
-                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
-                    <span class="material-symbols-rounded" style="font-size: 26px;">build</span>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3 style="<?= $qty_baotri > 0 ? 'color: #f59e0b;' : '' ?>">
+                            <?= number_format($qty_baotri) ?><span class="kpi-unit">cây</span>
+                        </h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">build</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #f59e0b;">home_repair_service</span>
+                        Dịch vụ:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #f59e0b;">
+                        Khách gửi sửa chữa / BH
+                    </span>
                 </div>
             </div>
 
             <!-- KPI 3: Tổng hiện diện vật lý -->
-            <div style="background: var(--bg-card); padding: 20px 24px; border-radius: var(--radius-xl); border: 1px solid rgba(124, 92, 252, 0.3); border-left: 5px solid var(--accent); display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <div style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Tổng Thực Tế Trong Kho</div>
-                    <div style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-top: 4px;"><?= number_format($qty_total) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span></div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Số lượng đếm thực tế khi kiểm kho</div>
+            <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);" onclick="window.location.href='<?= $buildTabUrl('all') ?>'">
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG THỰC TẾ TRONG KHO</p>
                 </div>
-                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(124, 92, 252, 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent);">
-                    <span class="material-symbols-rounded" style="font-size: 26px;">warehouse</span>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($qty_total) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">warehouse</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #3b82f6;">inventory</span>
+                        Kiểm kho:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #3b82f6;">
+                        Số lượng đếm thực tế
+                    </span>
                 </div>
             </div>
         </div>

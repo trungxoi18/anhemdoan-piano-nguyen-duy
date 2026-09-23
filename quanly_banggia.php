@@ -213,64 +213,104 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
 
         <?php echo $msg; ?>
 
-        <!-- KPI Summary Cards -->
+        <!-- KPI Summary Cards (Corporate & Clean UI) -->
         <div class="premium-kpi-row" style="margin-bottom: 24px;">
+            <!-- KPI 1: Tổng đàn trong kho -->
             <div class="premium-kpi-card" style="--card-color: #3b82f6; --card-bg-light: #eff6ff; --card-shadow-hover: rgba(59, 130, 246, 0.2);">
-                <div class="premium-kpi-icon">
-                    <span class="material-symbols-rounded">inventory_2</span>
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG ĐÀN TRONG KHO</p>
                 </div>
-                <div class="premium-kpi-info">
-                    <p>Tổng đàn trong kho</p>
-                    <h3><?= number_format($stat_total_stock) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span></h3>
-                    <span class="kpi-sub">
-                        <span class="material-symbols-rounded" style="font-size: 16px; color: #3b82f6;">warehouse</span>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($stat_total_stock) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">warehouse</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #3b82f6;">home_work</span>
+                        Phạm vi:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #3b82f6;">
                         Tất cả các kho
                     </span>
                 </div>
             </div>
 
+            <!-- KPI 2: Chưa niêm yết giá -->
             <div class="premium-kpi-card" style="--card-color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>; --card-bg-light: <?= $stat_unpriced_count > 0 ? '#fef2f2' : '#ecfdf5' ?>; --card-shadow-hover: rgba(239, 68, 68, 0.2);">
-                <div class="premium-kpi-icon">
-                    <span class="material-symbols-rounded"><?= $stat_unpriced_count > 0 ? 'warning' : 'verified' ?></span>
+                <div class="kpi-card-header">
+                    <p class="kpi-title">CHƯA NIÊM YẾT GIÁ</p>
                 </div>
-                <div class="premium-kpi-info">
-                    <p>Chưa niêm yết giá</p>
-                    <h3 style="color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>;">
-                        <?= number_format($stat_unpriced_count) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span>
-                    </h3>
-                    <span class="kpi-sub">
-                        <span class="material-symbols-rounded" style="font-size: 16px; color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>;">
-                            <?= $stat_unpriced_count > 0 ? 'priority_high' : 'check_circle' ?>
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3 style="color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>;">
+                            <?= number_format($stat_unpriced_count) ?><span class="kpi-unit">cây</span>
+                        </h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded"><?= $stat_unpriced_count > 0 ? 'rule_folder' : 'verified' ?></span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>;">
+                            <?= $stat_unpriced_count > 0 ? 'error_outline' : 'check_circle' ?>
                         </span>
+                        Trạng thái:
+                    </span>
+                    <span class="kpi-sub-right" style="color: <?= $stat_unpriced_count > 0 ? '#ef4444' : '#10b981' ?>;">
                         <?= $stat_unpriced_count > 0 ? 'Cần Admin nhập giá ngay' : 'Đã niêm yết 100%' ?>
                     </span>
                 </div>
             </div>
 
+            <!-- KPI 3: Đã niêm yết giá -->
             <div class="premium-kpi-card" style="--card-color: #10b981; --card-bg-light: #ecfdf5; --card-shadow-hover: rgba(16, 185, 129, 0.2);">
-                <div class="premium-kpi-icon">
-                    <span class="material-symbols-rounded">price_check</span>
+                <div class="kpi-card-header">
+                    <p class="kpi-title">ĐÃ NIÊM YẾT GIÁ</p>
                 </div>
-                <div class="premium-kpi-info">
-                    <p>Đã niêm yết giá</p>
-                    <h3><?= number_format($stat_priced_count) ?> <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">cây</span></h3>
-                    <span class="kpi-sub">
-                        <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">shopping_cart_checkout</span>
-                        Sẵn sàng xuất hóa đơn bán
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($stat_priced_count) ?><span class="kpi-unit">cây</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">price_check</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #10b981;">shopping_cart_checkout</span>
+                        Sẵn sàng:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #10b981;">
+                        Xuất hóa đơn bán
                     </span>
                 </div>
             </div>
 
+            <!-- KPI 4: Tổng giá trị niêm yết -->
             <div class="premium-kpi-card" style="--card-color: #8b5cf6; --card-bg-light: #f5f3ff; --card-shadow-hover: rgba(139, 92, 246, 0.2);">
-                <div class="premium-kpi-icon">
-                    <span class="material-symbols-rounded">monetization_on</span>
+                <div class="kpi-card-header">
+                    <p class="kpi-title">TỔNG GIÁ TRỊ NIÊM YẾT</p>
                 </div>
-                <div class="premium-kpi-info">
-                    <p>Tổng giá trị niêm yết</p>
-                    <h3 style="font-size: 1.4rem;"><?= number_format($stat_total_retail_val, 0, ',', '.') ?> <span style="font-size: 13px; font-weight: 500;">đ</span></h3>
-                    <span class="kpi-sub">
-                        <span class="material-symbols-rounded" style="font-size: 16px; color: #8b5cf6;">trending_up</span>
-                        Dự thu bán lẻ toàn kho
+                <div class="kpi-card-body">
+                    <div class="kpi-card-val-wrap">
+                        <h3><?= number_format($stat_total_retail_val, 0, ',', '.') ?><span class="kpi-unit">đ</span></h3>
+                    </div>
+                    <div class="premium-kpi-icon">
+                        <span class="material-symbols-rounded">insights</span>
+                    </div>
+                </div>
+                <div class="kpi-card-footer">
+                    <span class="kpi-sub-left">
+                        <span class="material-symbols-rounded" style="font-size: 15px; color: #8b5cf6;">trending_up</span>
+                        Dự thu:
+                    </span>
+                    <span class="kpi-sub-right" style="color: #8b5cf6;">
+                        Bán lẻ toàn kho
                     </span>
                 </div>
             </div>
