@@ -66,8 +66,8 @@ if (is_file(__DIR__ . '/ai_config.php')) {
 // Cấu hình tại môi trường máy chủ, hoặc thay chuỗi trống dưới đây khi chạy localhost.
 // Không đưa API key vào chat_widget.php hay tro_ly.php.
 $apiKey = trim((string) (getenv('GEMINI_API_KEY') ?: ($settings['api_key'] ?? '')));
-$model = (string) (getenv('GEMINI_MODEL') ?: ($settings['model'] ?? 'gemini-3.6-flash'));
-if ($apiKey === '' || $apiKey === 'YOUR_API_KEY') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Vui lòng nhờ quản trị viên cấu hình để sử dụng AI.', 503); }
+$model = (string) (getenv('GEMINI_MODEL') ?: ($settings['model'] ?? 'gemini-3.5-flash-lite'));
+if ($apiKey === '') { sendResponse('Chưa cấu hình GEMINI_API_KEY trên máy chủ. Hãy cấu hình API key để sử dụng AI.', 503); }
 if (!preg_match('/^[a-zA-Z0-9._-]+$/D', $model)) { sendResponse('Cấu hình GEMINI_MODEL không hợp lệ.', 503); }
 if (!function_exists('curl_init')) { sendResponse('Máy chủ chưa bật extension PHP cURL.', 503); }
 
@@ -166,18 +166,15 @@ foreach ($threads as $key => $thread) {
 $history = $threads[$id]['messages'] ?? [];
 $contents = $history;
 $contents[] = ['role' => 'user', 'parts' => [['text' => $message]]];
-$config = ['temperature' => 0.4, 'maxOutputTokens' => 8192];
-if ($model === 'gemini-2.5-flash') { $config['thinkingConfig'] = ['thinkingBudget' => 1024]; }
-// LOW giảm độ trễ suy nghĩ; không hạ giới hạn độ dài câu trả lời.
-// Có thể đặt GEMINI_THINKING_LEVEL=MEDIUM/HIGH, hoặc DEFAULT để bỏ cấu hình này.
 $thinkingLevel = strtoupper((string) (getenv('GEMINI_THINKING_LEVEL') ?: ($settings['thinking_level'] ?? 'LOW')));
-if ($model === 'gemini-3.6-flash' && in_array($thinkingLevel, ['LOW', 'MEDIUM', 'HIGH'], true)) {
-    $config['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
+$generationConfig = ['temperature' => 0.4, 'maxOutputTokens' => 4096];
+if (in_array($thinkingLevel, ['LOW', 'MEDIUM', 'HIGH'], true)) {
+    $generationConfig['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
 }
-
 $payload = json_encode([
     'systemInstruction' => ['parts' => [['text' => $system]]],
-    'contents' => $contents, 'generationConfig' => $config
+    'contents' => $contents,
+    'generationConfig' => $generationConfig
 ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 // Cache riêng trong session, 120 giây; dữ liệu được đọc mới trước khi so khớp.
 // Bao gồm model, prompt, cấu hình, dữ liệu, lịch sử và câu hỏi. Không cache lỗi/câu bị cắt.
@@ -224,7 +221,7 @@ $response = curl_exec($ch);
 $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $errno = curl_errno($ch);
 curl_close($ch);
-} // kết thúc nhánh gọi Gemini khi cache không có
+} // Kết thúc nhánh gọi Gemini khi cache không có.
 if ($http === 429) {
     $provider = json_decode($response ?: '{}', true);
     $wait = 0;
@@ -233,14 +230,10 @@ if ($http === 429) {
             $wait = max($wait, (int) ceil((float) $m[1]));
         }
     }
-    if (preg_match('/retry in\s+([0-9.]+)s/i', $provider['error']['message'] ?? '', $m)) {
-        $wait = max($wait, (int) ceil((float) $m[1]));
-    }
-    // Chờ tối thiểu 1 giây; nếu không có gợi ý, dùng 60 giây, không khẳng định quota đã reset.
     $wait = $wait > 0 ? $wait + 1 : 60;
     $_SESSION['kho_ai_wait'] = time() + $wait;
     header('Retry-After: ' . $wait);
-    sendResponse('Gemini đang giới hạn lượt gọi. Vui lòng đợi rồi thử lại. Nếu vẫn lỗi, kiểm tra quota trong AI Studio.', 429,
+    sendResponse('Gemini đang giới hạn lượt gọi. Hãy đợi rồi gửi lại; nếu lỗi tiếp tục, kiểm tra hạn mức trong Google AI Studio.', 429,
         ['retry_after' => $wait, 'code' => 'RATE_LIMITED']);
 }
 if ($response === false || $http !== 200) {
@@ -250,16 +243,11 @@ if ($response === false || $http !== 200) {
         sendResponse('Máy chủ chưa xác minh được chứng chỉ HTTPS. Cấu hình CA bundle cho PHP cURL.', 503, ['code' => 'TLS_CONFIG_ERROR']);
     }
     $providerError = json_decode($response ?: '{}', true);
-    $providerMessage = (string) ($providerError['error']['message'] ?? '');
-    if ($http === 403 && stripos($providerMessage, 'project has been denied access') !== false) {
-        sendResponse('Google từ chối quyền truy cập của dự án Gemini. Cần xử lý với Google; thay đường dẫn localhost/hosting không sửa được lỗi này.', 503,
-            ['code' => 'PROJECT_ACCESS_DENIED', 'provider_http' => 403]);
-    }
-    $errors = [400 => 'Yêu cầu hoặc cấu hình Gemini chưa hợp lệ. Quản trị viên cần kiểm tra API key và model.',
-        401 => 'Google không chấp nhận thông tin xác thực. Kiểm tra key của môi trường đang chạy.', 403 => 'Google từ chối yêu cầu. Kiểm tra quyền dự án và hạn chế của API key.',
-        404 => 'Model Gemini không khả dụng. Quản trị viên cần kiểm tra GEMINI_MODEL.',
-        429 => 'Gemini đang giới hạn lượt gọi hoặc đã hết hạn mức. Vui lòng thử lại sau.'];
-    sendResponse($errors[$http] ?? 'Chưa kết nối được dịch vụ AI. Vui lòng thử lại sau.', 503, ['code' => 'PROVIDER_ERROR', 'provider_http' => $http]);
+    $errors = [400 => 'Yêu cầu Gemini không hợp lệ. Kiểm tra model và cấu hình.',
+        401 => 'Google không chấp nhận Gemini API key. Kiểm tra GEMINI_API_KEY.',
+        403 => 'Google từ chối yêu cầu. Kiểm tra quyền truy cập Gemini API của dự án.',
+        404 => 'Không tìm thấy model Gemini. Kiểm tra GEMINI_MODEL.'];
+    sendResponse($errors[$http] ?? 'Chưa kết nối được dịch vụ Gemini. Vui lòng thử lại sau.', 503, ['code' => 'PROVIDER_ERROR', 'provider_http' => $http]);
 }
 $result = json_decode($response, true);
 $candidate = $result['candidates'][0] ?? [];
@@ -273,7 +261,7 @@ if ($reply === '' || !in_array($reason, ['STOP', 'MAX_TOKENS'], true)) {
     sendResponse('AI chưa tạo được câu trả lời đầy đủ cho yêu cầu này. Bạn hãy diễn đạt lại hoặc chia câu hỏi thành từng phần.', 502);
 }
 $contents[] = ['role' => 'model', 'parts' => [['text' => $reply]]];
-$history = array_slice($contents, -24);
+$history = array_slice($contents, -16);
 while (strlen(json_encode($history)) > 120000 && count($history) > 2) { $history = array_slice($history, 2); }
 unset($threads[$id]);
 while (count($threads) >= 8) { array_shift($threads); }

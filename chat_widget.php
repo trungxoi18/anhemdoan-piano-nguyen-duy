@@ -309,7 +309,7 @@ if ($aiEndpoint === '') {
         const seconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
         if (sendButton) sendButton.disabled = busy || seconds > 0;
         notice.textContent = seconds > 0
-            ? `Gemini yêu cầu chờ ${seconds} giây. Câu hỏi được giữ lại để bạn gửi lại.` : '';
+            ? `Dịch vụ AI yêu cầu chờ ${seconds} giây. Câu hỏi được giữ lại để bạn gửi lại.` : '';
         if (!seconds && timer) { clearInterval(timer); timer = null; }
     }
     function cooldown(seconds) {
@@ -375,7 +375,10 @@ if ($aiEndpoint === '') {
             if (response.status === 429 || data.code === 'RATE_LIMITED') {
                 const seconds = Number(data.retry_after || response.headers.get('Retry-After') || 60);
                 cooldown(Number.isFinite(seconds) && seconds > 0 ? seconds : 60);
-                throw new Error(data.reply || 'Gemini đang giới hạn lượt gọi.');
+                throw new Error(data.reply || 'Dịch vụ AI đang giới hạn lượt gọi.');
+            }
+            if (data.code === 'API_BILLING_REQUIRED') {
+                throw new Error(data.reply || 'Dịch vụ AI cần kiểm tra hạn mức tài khoản.');
             }
             if (!response.ok || data.ok === false) throw new Error(data.reply || 'Dịch vụ AI đang bận.');
             if (typeof data.reply !== 'string' || !data.reply.trim()) throw new Error('AI trả về nội dung trống. Hãy thử lại.');
