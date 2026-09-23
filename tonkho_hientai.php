@@ -26,7 +26,7 @@ $where_kho_kpi = $selected_kho > 0 ? " WHERE ds.maKho = $selected_kho " : " WHER
 
 // Thống kê KPI tổng quan theo kho
 $kpi_sql = "SELECT 
-    SUM(CASE WHEN ds.trangThai = 'Trong kho' THEN 1 ELSE 0 END) as qty_sales,
+    SUM(CASE WHEN ds.trangThai = 'Trong kho' AND COALESCE(ds.giaBan, 0) > 0 THEN 1 ELSE 0 END) as qty_sales,
     SUM(CASE WHEN ds.trangThai = 'Đang bảo hành' THEN 1 ELSE 0 END) as qty_baotri,
     SUM(CASE WHEN ds.trangThai IN ('Trong kho', 'Đang bảo hành') THEN 1 ELSE 0 END) as qty_total
 FROM danserial ds " . $where_kho_kpi;
@@ -37,7 +37,8 @@ $qty_total = intval($kpi_res['qty_total'] ?? 0);
 
 // Lấy dữ liệu tồn kho theo Mẫu Đàn
 $sql = "SELECT md.maMau, md.tenMau, md.hinhAnh, hd.tenHang, ld.tenLoai, 
-        SUM(CASE WHEN ds.trangThai = 'Trong kho' THEN 1 ELSE 0 END) as soLuongBan,
+        SUM(CASE WHEN ds.trangThai = 'Trong kho' AND COALESCE(ds.giaBan, 0) > 0 THEN 1 ELSE 0 END) as soLuongBan,
+        SUM(CASE WHEN ds.trangThai = 'Trong kho' AND COALESCE(ds.giaBan, 0) <= 0 THEN 1 ELSE 0 END) as soLuongChuaNiemYet,
         SUM(CASE WHEN ds.trangThai = 'Đang bảo hành' THEN 1 ELSE 0 END) as soLuongBaoTri,
         COUNT(ds.maSerial) as tongSoLuongTon, k.maKho, k.tenKho
         FROM MauDan md
@@ -57,7 +58,7 @@ if (!empty($search)) {
 }
 
 if ($tab_filter === 'sales') {
-    $sql .= " AND ds.trangThai = 'Trong kho'";
+    $sql .= " AND ds.trangThai = 'Trong kho' AND COALESCE(ds.giaBan, 0) > 0";
 } elseif ($tab_filter === 'baotri') {
     $sql .= " AND ds.trangThai = 'Đang bảo hành'";
 }
@@ -191,7 +192,7 @@ if ($result) {
         <!-- Bảng chi tiết Tra cứu Serial (Nếu có tìm kiếm hoặc lọc tab bảo trì) -->
         <?php if(!empty($search) || $tab_filter === 'baotri'): ?>
             <?php
-            $sql_serial = "SELECT ds.soSerial, md.tenMau, hd.tenHang, k.tenKho, ds.trangThai, ds.tinhTrang,
+            $sql_serial = "SELECT ds.soSerial, md.tenMau, hd.tenHang, k.tenKho, ds.trangThai, ds.tinhTrang, ds.giaBan,
                                   pb.maPhieuBT, kh.hoTen as tenKH, pb.moTaLoi
                            FROM danserial ds
                            JOIN MauDan md ON ds.maMau = md.maMau
@@ -209,7 +210,7 @@ if ($result) {
                 $sql_serial .= " AND (ds.soSerial LIKE '$searchEscaped%' OR md.tenMau LIKE '%$searchEscaped%' OR hd.tenHang LIKE '%$searchEscaped%')";
             }
             if ($tab_filter === 'sales') {
-                $sql_serial .= " AND ds.trangThai = 'Trong kho'";
+                $sql_serial .= " AND ds.trangThai = 'Trong kho' AND COALESCE(ds.giaBan, 0) > 0";
             } elseif ($tab_filter === 'baotri') {
                 $sql_serial .= " AND ds.trangThai = 'Đang bảo hành'";
             } else {
@@ -240,6 +241,7 @@ if ($result) {
                         <?php while($s_row = $res_serial->fetch_assoc()): 
                             $st = $s_row['trangThai'];
                             $isBT = ($st === 'Đang bảo hành');
+                            $isReadyToSell = ($st === 'Trong kho' && (float)($s_row['giaBan'] ?? 0) > 0);
                         ?>
                         <tr style="border-bottom: 1px solid var(--glass-border); transition: 0.2s; <?= $isBT ? 'background: rgba(245, 158, 11, 0.03);' : '' ?>" onmouseover="this.style.background='rgba(124, 92, 252, 0.05)'" onmouseout="this.style.background='<?= $isBT ? 'rgba(245, 158, 11, 0.03)' : 'transparent' ?>'">
                             <td style="padding: 16px; font-weight: 700; color: var(--accent);"><?php echo htmlspecialchars($s_row['soSerial']); ?></td>
@@ -255,9 +257,13 @@ if ($result) {
                                     <span style="color: #f59e0b; font-weight: 700; padding: 5px 12px; border-radius: 20px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 13px; display: inline-flex; align-items: center; gap: 5px;">
                                         <span class="material-symbols-rounded" style="font-size: 14px;">build</span> Đang bảo hành
                                     </span>
-                                <?php else: ?>
+                                <?php elseif($isReadyToSell): ?>
                                     <span style="color: #10b981; font-weight: 700; padding: 5px 12px; border-radius: 20px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 13px; display: inline-flex; align-items: center; gap: 5px;">
                                         <span class="material-symbols-rounded" style="font-size: 14px;">check_circle</span> Sẵn sàng bán
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #f59e0b; font-weight: 700; padding: 5px 12px; border-radius: 20px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 13px; display: inline-flex; align-items: center; gap: 5px;">
+                                        <span class="material-symbols-rounded" style="font-size: 14px;">sell</span> Chưa niêm yết giá
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -267,8 +273,10 @@ if ($result) {
                                     <div style="color: var(--text-muted); font-style: italic;"><?= htmlspecialchars($s_row['moTaLoi'] ?? '') ?></div>
                                 <?php elseif($isBT): ?>
                                     <span style="color: var(--text-muted);">Hàng gửi bảo hành</span>
-                                <?php else: ?>
+                                <?php elseif($isReadyToSell): ?>
                                     <span style="color: var(--text-muted);">Hàng mới trong kho</span>
+                                <?php else: ?>
+                                    <span style="color: var(--text-muted);">Cần nhập giá bán trước khi sẵn sàng bán</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -285,7 +293,8 @@ if ($result) {
                 <?php foreach($inventory_items as $row): 
                     $ban = intval($row['soLuongBan']);
                     $bt = intval($row['soLuongBaoTri']);
-                    $tong = $ban + $bt;
+                    $chuaNiemYet = intval($row['soLuongChuaNiemYet']);
+                    $tong = $ban + $bt + $chuaNiemYet;
                 ?>
                     <div class="inventory-card" style="position: relative;">
                         <div class="inventory-img">
@@ -316,6 +325,11 @@ if ($result) {
                                 <?php if($bt > 0): ?>
                                     <span style="font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 2px 6px; border-radius: 4px;">
                                         <?= $bt ?> đang bảo trì
+                                    </span>
+                                <?php endif; ?>
+                                <?php if($chuaNiemYet > 0): ?>
+                                    <span style="font-size: 11px; font-weight: 700; color: #f59e0b; background: rgba(245, 158, 11, 0.15); padding: 2px 6px; border-radius: 4px;">
+                                        <?= $chuaNiemYet ?> chưa niêm yết giá
                                     </span>
                                 <?php endif; ?>
                             </div>

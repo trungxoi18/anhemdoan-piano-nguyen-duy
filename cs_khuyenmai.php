@@ -235,12 +235,12 @@ $promotions = $conn->query("SELECT * FROM chuongtrinhkhuyenmai ORDER BY ngayTao 
 
 <!-- MODAL SỬA -->
 <div class="modal-overlay" id="editModal">
-    <div class="modal-card">
+    <div class="modal-card promo-edit-modal">
         <div class="modal-header">
             <h3 class="modal-title"><span class="material-symbols-rounded">edit_square</span> Cập nhật khuyến mãi</h3>
             <button class="modal-close" onclick="closeModal('editModal')"><span class="material-symbols-rounded">close</span></button>
         </div>
-        <form method="POST">
+        <form method="POST" class="promo-edit-form">
             <input type="hidden" name="maKM" id="edit_maKM">
             <div class="modal-body">
                 <div class="form-group">
@@ -276,7 +276,7 @@ $promotions = $conn->query("SELECT * FROM chuongtrinhkhuyenmai ORDER BY ngayTao 
 
                 <div class="form-group">
                     <label>Nội dung, thể lệ chi tiết</label>
-                    <textarea name="moTa" id="edit_moTa" class="custom-input" rows="5" required></textarea>
+                    <textarea name="moTa" id="edit_moTa" class="custom-input" rows="3" required></textarea>
                 </div>
             </div>
             <div class="modal-footer">
