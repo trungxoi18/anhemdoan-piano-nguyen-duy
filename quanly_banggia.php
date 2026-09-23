@@ -195,7 +195,7 @@ $list_maus = $conn->query("SELECT maMau, tenMau FROM maudan ORDER BY tenMau ASC"
                     Quản Lý Bảng Giá & Niêm Yết
                 </h1>
                 <p style="color: var(--text-secondary); margin: 6px 0 0 0; font-size: 14px;">
-                    Thẩm quyền Quản trị viên: Thiết lập, điều chỉnh và niêm yết giá bán chính thức cho từng cây đàn trong kho.
+
                 </p>
             </div>
             

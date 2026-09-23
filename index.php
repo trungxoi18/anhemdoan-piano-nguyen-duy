@@ -284,9 +284,176 @@ if ($res_policies) {
                 <?php echo $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
             </div>
         <?php endif; ?>
-        <div class="hero-banner">
-            <h1><?php echo __('hello'); ?> <?php echo htmlspecialchars($fullname); ?>!</h1>
-            <p>Chào mừng trở lại bảng điều khiển hệ thống quản lý. Tại đây bạn có thể kiểm soát mọi hoạt động kinh doanh, tồn kho và các dịch vụ sau bán hàng một cách trực quan nhất.</p>
+        <!-- 1. Hero Dynamic Carousel Banner (Chào mừng / Bảo hành / Bảo trì / Khuyến mãi) -->
+        <div class="hero-carousel-container" id="heroCarousel">
+            <!-- Slides Wrapper -->
+            <div class="hero-slides-wrapper">
+                
+                <!-- Slide 1: Chào mừng & Tổng quan -->
+                <div class="hero-slide active" data-index="0" style="--slide-bg-grad: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.88) 55%, rgba(15, 23, 42, 0.95) 100%); --slide-accent: #38bdf8;">
+                    <div class="hero-slide-bg" style="background-image: url('images/hero_banner_piano.jpg');"></div>
+                    <div class="hero-slide-content">
+                        <div class="hero-slide-tag">
+                            <span class="material-symbols-rounded">waving_hand</span>
+                            <span>HỆ THỐNG QUẢN TRỊ PIANO NGUYỄN DUY</span>
+                        </div>
+                        <h1 class="hero-slide-title"><?php echo __('hello'); ?>, <?= htmlspecialchars($fullname) ?>!</h1>
+                        <p class="hero-slide-desc">Chào mừng trở lại bảng điều khiển trung tâm. Kiểm soát kinh doanh, dòng tiền, tồn kho, bảo dưỡng và các giao dịch xuất nhập tức thì.</p>
+                        <div class="hero-slide-actions">
+                            <a href="hoadon_moi.php" class="btn-hero-action primary">
+                                <span class="material-symbols-rounded">add_shopping_cart</span>
+                                <span>Tạo đơn bán hàng</span>
+                            </a>
+                            <a href="tonkho_hientai.php" class="btn-hero-action secondary">
+                                <span class="material-symbols-rounded">inventory_2</span>
+                                <span>Kiểm tra tồn kho</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="hero-slide-badge-wrap">
+                        <div class="hero-floating-badge">
+                            <div class="badge-icon-wrap" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                                <span class="material-symbols-rounded">piano</span>
+                            </div>
+                            <div class="badge-text-wrap">
+                                <span class="badge-label">Kho đàn sẵn sàng</span>
+                                <span class="badge-val"><?= number_format($tong_dan, 0, ',', '.') ?> cây</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Chính sách Bảo Hành Toàn Diện -->
+                <div class="hero-slide" data-index="1" style="--slide-bg-grad: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(15, 23, 42, 0.9) 55%, rgba(6, 78, 59, 0.95) 100%); --slide-accent: #34d399;">
+                    <div class="hero-slide-bg" style="background-image: url('images/hero_grand_piano.jpg');"></div>
+                    <div class="hero-slide-content">
+                        <div class="hero-slide-tag" style="background: rgba(52, 211, 153, 0.18); border-color: rgba(52, 211, 153, 0.35); color: #6ee7b7;">
+                            <span class="material-symbols-rounded">verified_user</span>
+                            <span>CHÍNH SÁCH BẢO HÀNH CHÍNH HÃNG</span>
+                        </div>
+                        <h1 class="hero-slide-title">Bảo Hành Cơ 10 Năm & 1 Đổi 1 Trong 30 Ngày</h1>
+                        <p class="hero-slide-desc">Bảo hành chính hãng cho Grand & Upright Piano, miễn phí 2 lần căn chỉnh dây (Tuning) trong năm đầu, cam kết 100% linh phụ kiện chuẩn hãng.</p>
+                        <div class="hero-slide-actions">
+                            <a href="cs_baohanh.php" class="btn-hero-action primary" style="background: #10b981; border-color: #10b981; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                                <span class="material-symbols-rounded">menu_book</span>
+                                <span>Xem toàn bộ chính sách</span>
+                            </a>
+                            <a href="tracuu.php" class="btn-hero-action secondary">
+                                <span class="material-symbols-rounded">qr_code_scanner</span>
+                                <span>Tra cứu Serial & BH</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="hero-slide-badge-wrap">
+                        <div class="hero-floating-badge" style="border-color: rgba(52, 211, 153, 0.3);">
+                            <div class="badge-icon-wrap" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">
+                                <span class="material-symbols-rounded">shield_check</span>
+                            </div>
+                            <div class="badge-text-wrap">
+                                <span class="badge-label">Thời hạn bảo hành</span>
+                                <span class="badge-val" style="color: #6ee7b7;">10 Năm / 2 Năm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Dịch vụ Bảo Trì & Sửa Chữa -->
+                <div class="hero-slide" data-index="2" style="--slide-bg-grad: linear-gradient(135deg, rgba(120, 53, 15, 0.95) 0%, rgba(15, 23, 42, 0.9) 55%, rgba(120, 53, 15, 0.95) 100%); --slide-accent: #fbbf24;">
+                    <div class="hero-slide-bg" style="background-image: url('images/hero_bg.jpg');"></div>
+                    <div class="hero-slide-content">
+                        <div class="hero-slide-tag" style="background: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.35); color: #fde68a;">
+                            <span class="material-symbols-rounded">home_repair_service</span>
+                            <span>DỊCH VỤ KỸ THUẬT & BẢO DƯỠNG</span>
+                        </div>
+                        <h1 class="hero-slide-title">Bảo Trì, Căn Chỉnh Dây & Cân Chỉnh Máy Chuẩn Nhật</h1>
+                        <p class="hero-slide-desc">Quy trình kỹ thuật 18 bước: Căn chỉnh cơ học, vệ sinh chống ẩm buồng âm, sưởi búa đàn, đánh bóng phục hồi phím gỗ và vỏ sơn Piano sang trọng.</p>
+                        <div class="hero-slide-actions">
+                            <a href="taophieu_baotri.php" class="btn-hero-action primary" style="background: #f59e0b; border-color: #f59e0b; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+                                <span class="material-symbols-rounded">build</span>
+                                <span>Tiếp nhận bảo trì</span>
+                            </a>
+                            <a href="quanly_baotri.php" class="btn-hero-action secondary">
+                                <span class="material-symbols-rounded">list_alt</span>
+                                <span>Sổ theo dõi sửa chữa</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="hero-slide-badge-wrap">
+                        <div class="hero-floating-badge" style="border-color: rgba(251, 191, 36, 0.3);">
+                            <div class="badge-icon-wrap" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+                                <span class="material-symbols-rounded">handyman</span>
+                            </div>
+                            <div class="badge-text-wrap">
+                                <span class="badge-label">Quy trình kỹ thuật</span>
+                                <span class="badge-val" style="color: #fde68a;">18 Bước Chuẩn</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Chương Trình Khuyến Mãi -->
+                <div class="hero-slide" data-index="3" style="--slide-bg-grad: linear-gradient(135deg, rgba(131, 24, 67, 0.95) 0%, rgba(15, 23, 42, 0.9) 55%, rgba(131, 24, 67, 0.95) 100%); --slide-accent: #f472b6;">
+                    <div class="hero-slide-bg" style="background-image: url('images/hero_banner_piano.jpg');"></div>
+                    <div class="hero-slide-content">
+                        <div class="hero-slide-tag" style="background: rgba(244, 114, 182, 0.18); border-color: rgba(244, 114, 182, 0.35); color: #fbcfe8;">
+                            <span class="material-symbols-rounded">redeem</span>
+                            <span>CHƯƠNG TRÌNH KHUYẾN MÃI & ƯU ĐÃI</span>
+                        </div>
+                        <h1 class="hero-slide-title">Ưu Đãi Trả Góp 0% & Tặng Gói Phụ Kiện Cao Cấp</h1>
+                        <p class="hero-slide-desc">Giảm ngay đến 15% cho dòng Piano cao cấp, tặng kèm bộ phụ kiện chính hãng gồm ghế nâng hạ Nhật Bản, khăn phủ nhung, ống sấy và gói bảo dưỡng tại nhà.</p>
+                        <div class="hero-slide-actions">
+                            <a href="cs_khuyenmai.php" class="btn-hero-action primary" style="background: #ec4899; border-color: #ec4899; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);">
+                                <span class="material-symbols-rounded">card_giftcard</span>
+                                <span>Xem các chương trình</span>
+                            </a>
+                            <a href="quanly_banggia.php" class="btn-hero-action secondary">
+                                <span class="material-symbols-rounded">sell</span>
+                                <span>Bảng giá niêm yết</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="hero-slide-badge-wrap">
+                        <div class="hero-floating-badge" style="border-color: rgba(244, 114, 182, 0.3);">
+                            <div class="badge-icon-wrap" style="background: rgba(244, 114, 182, 0.15); color: #f472b6;">
+                                <span class="material-symbols-rounded">percent</span>
+                            </div>
+                            <div class="badge-text-wrap">
+                                <span class="badge-label">Chiết khấu tối đa</span>
+                                <span class="badge-val" style="color: #fbcfe8;">Tới 15% & Quà</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Controls: Arrows -->
+            <button type="button" class="hero-carousel-arrow prev" id="heroPrevBtn" aria-label="Slide trước" title="Slide trước">
+                <span class="material-symbols-rounded">chevron_left</span>
+            </button>
+            <button type="button" class="hero-carousel-arrow next" id="heroNextBtn" aria-label="Slide kế tiếp" title="Slide kế tiếp">
+                <span class="material-symbols-rounded">chevron_right</span>
+            </button>
+
+            <!-- Bottom Indicator Dots & Progress -->
+            <div class="hero-carousel-indicators" id="heroIndicators">
+                <button type="button" class="hero-indicator active" data-slide="0" aria-label="Chào mừng">
+                    <span class="ind-progress"></span>
+                    <span class="ind-label">Chào mừng</span>
+                </button>
+                <button type="button" class="hero-indicator" data-slide="1" aria-label="Bảo hành">
+                    <span class="ind-progress"></span>
+                    <span class="ind-label">Bảo hành</span>
+                </button>
+                <button type="button" class="hero-indicator" data-slide="2" aria-label="Bảo trì">
+                    <span class="ind-progress"></span>
+                    <span class="ind-label">Bảo trì</span>
+                </button>
+                <button type="button" class="hero-indicator" data-slide="3" aria-label="Khuyến mãi">
+                    <span class="ind-progress"></span>
+                    <span class="ind-label">Khuyến mãi</span>
+                </button>
+            </div>
         </div>
 
         <!-- 2. KPI Row (Corporate & Clean UI) -->
@@ -977,5 +1144,126 @@ if ($res_policies) {
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// ===== DYNAMIC HERO CAROUSEL CONTROLLER =====
+document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.getElementById('heroCarousel');
+    if (!carousel) return;
+
+    const slides = carousel.querySelectorAll('.hero-slide');
+    const indicators = carousel.querySelectorAll('.hero-indicator');
+    const prevBtn = document.getElementById('heroPrevBtn');
+    const nextBtn = document.getElementById('heroNextBtn');
+    
+    let currentIndex = 0;
+    const totalSlides = slides.length;
+    let autoSlideInterval = null;
+    const slideDuration = 5500; // 5.5 seconds per slide
+
+    function goToSlide(index) {
+        if (index < 0) index = totalSlides - 1;
+        if (index >= totalSlides) index = 0;
+
+        // Update slides
+        slides.forEach((slide, i) => {
+            if (i === index) {
+                slide.classList.add('active');
+            } else {
+                slide.classList.remove('active');
+            }
+        });
+
+        // Update indicators
+        indicators.forEach((ind, i) => {
+            if (i === index) {
+                ind.classList.add('active');
+            } else {
+                ind.classList.remove('active');
+            }
+        });
+
+        currentIndex = index;
+    }
+
+    function nextSlide() {
+        goToSlide(currentIndex + 1);
+    }
+
+    function prevSlide() {
+        goToSlide(currentIndex - 1);
+    }
+
+    function startAutoSlide() {
+        stopAutoSlide();
+        autoSlideInterval = setInterval(nextSlide, slideDuration);
+    }
+
+    function stopAutoSlide() {
+        if (autoSlideInterval) {
+            clearInterval(autoSlideInterval);
+            autoSlideInterval = null;
+        }
+    }
+
+    // Attach button events
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        nextSlide();
+        startAutoSlide(); // Reset timer
+    });
+
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        prevSlide();
+        startAutoSlide(); // Reset timer
+    });
+
+    // Attach indicator tab clicks
+    indicators.forEach((ind, i) => {
+        ind.addEventListener('click', () => {
+            goToSlide(i);
+            startAutoSlide(); // Reset timer
+        });
+    });
+
+    // Pause on hover
+    carousel.addEventListener('mouseenter', stopAutoSlide);
+    carousel.addEventListener('mouseleave', startAutoSlide);
+
+    // Touch Swipe Support for Mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        stopAutoSlide();
+    }, { passive: true });
+
+    carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 45) {
+            if (diff > 0) {
+                nextSlide(); // Swiped left -> Next
+            } else {
+                prevSlide(); // Swiped right -> Prev
+            }
+        }
+        startAutoSlide();
+    }, { passive: true });
+
+    // Keyboard Arrow Navigation when mouse is inside
+    window.addEventListener('keydown', (e) => {
+        const rect = carousel.getBoundingClientRect();
+        const isInViewport = (rect.top >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight));
+        if (isInViewport) {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        }
+    });
+
+    // Start auto slide
+    startAutoSlide();
+});
+</script>
 
 <?php include 'includes/footer.php'; ?>

@@ -89,7 +89,7 @@ if ($result) {
                     Tồn Kho & Kiểm Kê Thực Tế
                 </h2>
                 <div style="color: var(--text-secondary); font-size: 14px;">
-                    Thống kê phân tách rõ ràng giữa <strong>Hàng thương mại</strong> và <strong>Hàng khách gửi bảo trì</strong>
+                  
                 </div>
             </div>
             <div style="display: flex; gap: 10px;">
