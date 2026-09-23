@@ -57,14 +57,14 @@ if($res_dt && $row = $res_dt->fetch_assoc()) {
     $doanh_thu_thuc_te = $row['total_thuc_te'] ?? 0;
 }
 
-// 4. Yêu cầu chờ duyệt (Bao gồm Hóa đơn, Phiếu nhập, Phiếu xuất)
+// 4. Yêu cầu chờ duyệt (Chỉ gồm Phiếu nhập, Phiếu xuất, Phiếu điều chuyển - KHÔNG bao gồm Hóa đơn)
 $sql_yc = "SELECT 
-            (SELECT COUNT(*) FROM HoaDon WHERE trangThai = 'Chờ duyệt') +
-            (SELECT COUNT(*) FROM PhieuNhap WHERE trangThai = 'Chờ duyệt') + 
-            (SELECT COUNT(*) FROM PhieuXuat WHERE trangThai = 'Chờ duyệt') AS total";
+            (SELECT COUNT(*) FROM phieunhap WHERE trangThai = 'Chờ duyệt') + 
+            (SELECT COUNT(*) FROM phieuxuat WHERE trangThai = 'Chờ duyệt') +
+            (SELECT COUNT(*) FROM phieudieuchuyen WHERE trangThai = 'Chờ duyệt') AS total";
 $res_yc = $conn->query($sql_yc);
 if($res_yc && $row = $res_yc->fetch_assoc()) { 
-    $yeu_cau_cho = $row['total'] ?? 0; 
+    $yeu_cau_cho = (int)($row['total'] ?? 0); 
 }
 
 // 5. Đơn hàng đang xử lý (Chờ duyệt, Chờ giao, Đang giao)
@@ -206,14 +206,14 @@ if ($res_top) {
 }
 
 // 8. Widget Việc Cần Làm (Lists)
-// Cho Admin: Phiếu chờ duyệt
+// Cho Admin: Phiếu chờ duyệt (Phiếu nhập, Phiếu xuất, Phiếu điều chuyển - Không bao gồm Hóa đơn)
 $list_cho_duyet = [];
 if ($role_id == 1) {
-    $res_cd = $conn->query("(SELECT 'Hóa đơn' as loai, maHoaDon as id, ngayLap as thoiGian FROM hoadon WHERE trangThai = 'Chờ duyệt')
+    $res_cd = $conn->query("(SELECT 'Phiếu nhập' as loai, maPhieuNhap as id, ngayNhap as thoiGian FROM phieunhap WHERE trangThai = 'Chờ duyệt')
                             UNION ALL
                             (SELECT 'Phiếu xuất' as loai, maPhieuXuat as id, ngayXuat as thoiGian FROM phieuxuat WHERE trangThai = 'Chờ duyệt')
                             UNION ALL
-                            (SELECT 'Phiếu nhập' as loai, maPhieuNhap as id, ngayNhap as thoiGian FROM phieunhap WHERE trangThai = 'Chờ duyệt')
+                            (SELECT 'Phiếu điều chuyển' as loai, maPhieuDC as id, ngayTao as thoiGian FROM phieudieuchuyen WHERE trangThai = 'Chờ duyệt')
                             ORDER BY thoiGian DESC LIMIT 5");
     if ($res_cd) while ($r = $res_cd->fetch_assoc()) $list_cho_duyet[] = $r;
 }
@@ -498,11 +498,11 @@ if ($res_policies) {
                     </div>
                     <div class="kpi-card-footer">
                         <span class="kpi-sub-left">
-                            <span class="material-symbols-rounded" style="font-size: 15px; color: #ef4444;">error_outline</span>
+                            <span class="material-symbols-rounded" style="font-size: 15px; color: #ef4444;">pending_actions</span>
                             Chờ xử lý:
                         </span>
                         <span class="kpi-sub-right" style="color: #ef4444;">
-                            Hóa đơn & phiếu
+                            Nhập, xuất & điều chuyển
                         </span>
                     </div>
                 </div>
